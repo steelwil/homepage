@@ -1,0 +1,23 @@
+body   
+{
+	color: black;
+	background-color: #dff3c9;
+	font: 11pt "Bitstream vera serif", serif;
+	background: url("teddy1.gif") left top;
+	background-repeat: repeat;
+	/*font-size: 8pt;
+	line-height: 15pt;
+	font-family: helvetica, sans-serif;*/
+}
+table
+{
+	font-size: 11pt; /* demoronize IE */
+}
+table.pictures
+{
+	width: 50%
+}
+img
+{
+	border: 0px;
+}

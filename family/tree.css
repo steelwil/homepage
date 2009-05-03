@@ -1,0 +1,47 @@
+body   
+{
+	color: black;
+	/*background-color: #fdf2e0;*/
+	background: url("images/background.jpg");
+	background-repeat: repeat;
+	font: 11pt "Bitstream vera serif", serif;
+	/*font-size: 8pt;
+	line-height: 15pt;
+	font-family: helvetica, sans-serif;*/
+}
+table
+{
+	font-size: 11pt; /* demoronize IE */
+}
+img
+{
+	border: 0px;
+}
+img.right  
+{
+	float: right;
+}
+img.left  
+{
+	float: left;
+}
+hr  
+{
+}
+span.ul 
+{
+}
+h3
+{
+	border-bottom: 1px solid black;
+}
+td  
+{
+	vertical-align: top;
+	width: 15em;
+	white-space: nowrap;
+}
+pre
+{
+	font-size: 9pt;
+}

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>Plant Food Program</title>
+<meta name="author" content="William Bell" />
+<link href="../wgb.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<p><a href="../index.html">[Home]</a></p>
+
+<h3>Plant Food</h3>
+<p>PlantFood is a program used in hydroponics, It is used to calculate the amount of salts needed to get a desired PPM ratio.</p>
+
+<h4>Whats new</h4>
+<p><em>2005-03-12:</em> Released under the Open Source GPL license.</p>
+<p>This is the one of the first programs I have ever written! I wrote it around 1991, and it was originally written in Turbo
+Pascal, I have since ported it to <a href="http://www.freepascal.org/">Free Pascal</a></p>
+<p>It is a console application, so its not using an exactly modern interface.</p>
+<p>The reason I wrote the program was, at the time my Dad was very much into hydroponics and kept asking me to calculate how much
+of this or that he needed to mix. Necessity it the mother of invention and the rest is history.</p>
+<p>I took Pascal at school, loved the Borland IDE at the time, I remember being quite excited about Turbo Pascal, or anything
+PC'ish for that matter.</p>
+<p>I started a C++ port but never finished it. If you want it though, just mail me.</p>
+<p>This is one of those sentimental things for me, anyway if you could use/improve on it go ahead!</p>
+
+<h4>Screen Shot</h4>
+<p><img src="PlantFood.png" alt="pic of PlantFood" width="668" height="331" /></p>
+
+<h4>Features</h4>
+<ul>
+<li>Considers the N, P, K, Ca and Mg ratios for <a href="plantfood2.png">various plants.</a></li>
+<li>Calculate using your own custom ratios.</li>
+<li>Add new salts/fertilisers.</li>
+<li>Compiles under Linux</li>
+<li>Very small footprint.</li>
+<li>And the best of all it's free! Licensed under the GPL.</li>
+</ul>
+
+<h4>To Do</h4>
+<ul>
+<li>Save results to a file.</li>
+<li>Printing.</li>
+<li>Be able to display ratios for more plants.</li>
+<li>Be able to display more salt types.</li>
+<li>Make GUI based.</li>
+</ul>
+
+<p>Download PlantFood including source files <a href="PlantFood.zip">PlantFood.zip</a> (34,237 bytes)<br /></p>
+
+</body>
+</html>
