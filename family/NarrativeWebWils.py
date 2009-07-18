@@ -33,7 +33,11 @@ Narrative Web Page generator.
 #------------------------------------------------------------------------
 import cgi
 import os
-import md5
+import re
+try:
+    from hashlib import md5
+except ImportError:
+    from md5 import md5
 import time
 import locale
 import shutil
@@ -62,16 +66,17 @@ import gen.lib
 import const
 from GrampsCfg import get_researcher
 import Sort
-from PluginUtils import (register_report, FilterOption, EnumeratedListOption,
-                         PersonOption, BooleanOption, NumberOption,
-                         StringOption, DestinationOption, NoteOption,
-                         MediaOption)
+from gen.plug import PluginManager
+from gen.plug.menu import PersonOption, NumberOption, StringOption, \
+                          BooleanOption, EnumeratedListOption, FilterOption, \
+                          NoteOption, MediaOption, DestinationOption
 from ReportBase import (Report, ReportUtils, MenuReportOptions, CATEGORY_WEB,
-                        MODE_GUI, MODE_CLI, Bibliography)
+                        Bibliography)
 import Utils
 import ThumbNails
 import ImgManip
 import Mime
+from Utils import probably_alive
 from QuestionDialog import ErrorDialog, WarningDialog
 from BasicUtils import name_displayer as _nd
 from DateHandler import displayer as _dd
@@ -86,6 +91,9 @@ from gen.lib.eventroletype import EventRoleType
 #------------------------------------------------------------------------
 _NARRATIVE = "narrative.css"
 _NARRATIVEPRINT = "narrative-print.css"
+_PERSON = 0
+_PLACE = 1
+_INCLUDE_LIVING_VALUE = 99 # Arbitrary number
 _NAME_COL  = 3
 
 _MAX_IMG_WIDTH = 800   # resize images that are wider than this
@@ -97,20 +105,25 @@ _HGAP = 30
 _SHADOW = 5
 _XOFFSET = 5
 
-#This information defines the list of styles in the Narrative Web options dialog as well as the location of the corresponding SCREEN stylesheets.
+# This information defines the list of styles in the Narrative Web
+# options dialog as well as the location of the corresponding SCREEN
+# stylesheets.
 _CSS_FILES = [
+    # First is used as default selection.
+    [_("Basic-Ash"),            'Web_Basic-Ash.css'],
+    [_("Basic-Cypress"),        'Web_Basic-Cypress.css'],
+    [_("Basic-Lilac"),          'Web_Basic-Lilac.css'],
+    [_("Basic-Peach"),          'Web_Basic-Peach.css'],
+    [_("Basic-Spruce"),         'Web_Basic-Spruce.css'],
+    [_("Mainz"),                'Web_Mainz.css'],
+    [_("Nebraska"),             'Web_Nebraska.css'],
+    [_("Visually Impaired"),    'Web_Visually.css'],
 
-    [_("Basic - Ash"),     'NWeb-Screen_Basic-Ash.css'],
-    [_("Basic - Cypress"), 'NWeb-Screen_Basic-Cypress.css'],
-    [_("Basic - Lilac"),   'NWeb-Screen_Basic-Lilac.css'],
-    [_("Basic - Peach"),   'NWeb-Screen_Basic-Peach.css'],
-    [_("Basic - Spruce"),  'NWeb-Screen_Basic-Spruce.css'],
-    [_("Mainz"),           'NWeb-Screen_Mainz.css'],
-    [_("Nebraska"),        'NWeb-Screen_Nebraska.css'],
     [_("No style sheet"),  ''],
     ]
 
 _CHARACTER_SETS = [
+    # First is used as default selection.
     [_('Unicode (recommended)'), 'utf-8'],
     ['ISO-8859-1',  'iso-8859-1' ],
     ['ISO-8859-2',  'iso-8859-2' ],
@@ -129,35 +142,37 @@ _CHARACTER_SETS = [
     ]
 
 _CC = [
+    '',
+
     '<a rel="license" href="http://creativecommons.org/licenses/by/2.5/">'
     '<img alt="Creative Commons License - By attribution" '
     'title="Creative Commons License - By attribution" '
-    'src="#PATH#images/somerights20.gif" /></a>',
+    'src="%(gif_fname)s" /></a>',
 
     '<a rel="license" href="http://creativecommons.org/licenses/by-nd/2.5/">'
     '<img alt="Creative Commons License - By attribution, No derivations" '
     'title="Creative Commons License - By attribution, No derivations" '
-    'src="#PATH#images/somerights20.gif" /></a>',
+    'src="%(gif_fname)s" /></a>',
 
     '<a rel="license" href="http://creativecommons.org/licenses/by-sa/2.5/">'
     '<img alt="Creative Commons License - By attribution, Share-alike" '
     'title="Creative Commons License - By attribution, Share-alike" '
-    'src="#PATH#images/somerights20.gif" /></a>',
+    'src="%(gif_fname)s" /></a>',
 
     '<a rel="license" href="http://creativecommons.org/licenses/by-nc/2.5/">'
     '<img alt="Creative Commons License - By attribution, Non-commercial" '
     'title="Creative Commons License - By attribution, Non-commercial" '
-    'src="#PATH#images/somerights20.gif" /></a>',
+    'src="%(gif_fname)s" /></a>',
 
     '<a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/2.5/">'
     '<img alt="Creative Commons License - By attribution, Non-commercial, No derivations" '
     'title="Creative Commons License - By attribution, Non-commercial, No derivations" '
-    'src="#PATH#images/somerights20.gif" /></a>',
+    'src="%(gif_fname)s" /></a>',
 
     '<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/2.5/">'
     '<img alt="Creative Commons License - By attribution, Non-commerical, Share-alike" '
     'title="Creative Commons License - By attribution, Non-commerical, Share-alike" '
-    'src="#PATH#images/somerights20.gif" /></a>'
+    'src="%(gif_fname)s" /></a>'
     ]
 
 _COPY_OPTIONS = [
@@ -202,6 +217,10 @@ def html_escape(text):
         L.append(html_escape_table.get(c,c))
     return "".join(L)
 
+
+def name_to_md5(text):
+    """This creates an MD5 hex string to be used as filename."""
+    return md5(text).hexdigest()
 
 class BasePage:
     def __init__(self, title, options, archive, photo_list, gid):
@@ -325,7 +344,7 @@ class BasePage:
             of.close()
 
     def lnkfmt(self,text):
-        return md5.new(text).hexdigest()
+        return name_to_md5(text)
 
     def display_footer(self, of,db):
         if self.footer:
@@ -506,11 +525,13 @@ class BasePage:
         of.write('\n<h3>%s</h3>\n' % _('Gallery'))
         displayed = []
         for mediaref in photolist:
+
             photo_handle = mediaref.get_reference_handle()
             photo = db.get_object_from_handle(photo_handle)
             if photo_handle in displayed:
                 continue
             mime_type = photo.get_mime_type()
+
             title = photo.get_description()
             if title == "":
                 title = "(untitled)"
@@ -541,9 +562,9 @@ class BasePage:
             return
 
         for notehandle in notelist:
-            noteobj = db.get_note_from_handle(notehandle)
-            format = noteobj.get_format()
-            text = noteobj.get(markup=True)
+            note = db.get_note_from_handle(notehandle)
+            format = note.get_format()
+            text = note.get()
             try:
                 text = unicode(text)
             except UnicodeDecodeError:
@@ -1035,14 +1056,14 @@ class PlaceListPage(BasePage):
                 of.write('<tr><td colspan="2">&nbsp;</td></tr>\n')
                 of.write('<tr><td>%s</td>' % last_letter)
                 of.write('<td>')
-                self.place_link(of,place.handle, n,place.gramps_id)
+                self.place_link(of,place.gramps_id, n,place.gramps_id)
                 of.write('</td>')
                 of.write('</tr>\n')
             else:
                 of.write('<tr>')
                 of.write('<td>&nbsp;</td>')
                 of.write('<td>')
-                self.place_link(of,place.handle, n,place.gramps_id)
+                self.place_link(of,place.gramps_id, n,place.gramps_id)
                 of.write('</td>')
                 of.write('</tr>\n')
 
@@ -1707,6 +1728,9 @@ class ContactPage(BasePage):
 #
 #------------------------------------------------------------------------
 class IndividualPage(BasePage):
+    """
+    This class is used to write HTML for an individual.
+    """
 
     gender_map = {
         gen.lib.Person.MALE    : _('male'),
@@ -2213,10 +2237,10 @@ class IndividualPage(BasePage):
             of.write('</tr>\n')
         notelist = family.get_note_list()
         for notehandle in notelist:
-            nobj = self.db.get_note_from_handle(notehandle)
-            if nobj:
-                text = nobj.get(markup=True)
-                format = nobj.get_format()
+            note = self.db.get_note_from_handle(notehandle)
+            if note:
+                text = note.get()
+                format = note.get_format()
                 if text:
                     of.write('<tr><td>%s:</td>' % _('Narrative'))
                     of.write('<td><p>')
@@ -2333,10 +2357,10 @@ class IndividualPage(BasePage):
         notelist = event.get_note_list()
         notelist.extend(event_ref.get_note_list())
         for notehandle in notelist:
-            nobj = self.db.get_note_from_handle(notehandle)
-            if nobj:
-                note_text = nobj.get(markup=True)
-                format = nobj.get_format()
+            note = self.db.get_note_from_handle(notehandle)
+            if note:
+                note_text = note.get()
+                format = note.get_format()
                 if note_text:
                     if format:
                         text += u"<pre>%s</pre>" % note_text
@@ -2376,6 +2400,7 @@ class IndividualPage(BasePage):
 #
 #------------------------------------------------------------------------
 class NavWebReport(Report):
+    
     def __init__(self, database, options):
         """
         Create WebReport object that produces the report.
@@ -2388,57 +2413,52 @@ class NavWebReport(Report):
         """
         Report.__init__(self, database, options)
         menu = options.menu
-        self.opts = {}
+        self.options = {}
 
         for optname in menu.get_all_option_names():
             menuopt = menu.get_option_by_name(optname)
-            self.opts[optname] = menuopt.get_value()
+            self.options[optname] = menuopt.get_value()
 
-        if not self.opts['incpriv']:
+        if not self.options['incpriv']:
             self.database = PrivateProxyDb(database)
         else:
             self.database = database
 
-        livinginfo = self.opts['living']
-        yearsafterdeath = self.opts['yearsafterdeath']
+        livinginfo = self.options['living']
+        yearsafterdeath = self.options['yearsafterdeath']
 
-        if livinginfo == LivingProxyDb.MODE_EXCLUDE:
+        if livinginfo != _INCLUDE_LIVING_VALUE:
             self.database = LivingProxyDb(self.database,
-                                          LivingProxyDb.MODE_EXCLUDE,
-                                          None,
-                                          yearsafterdeath)
-        elif livinginfo == LivingProxyDb.MODE_RESTRICT:
-            self.database = LivingProxyDb(self.database,
-                                          LivingProxyDb.MODE_RESTRICT,
+                                          livinginfo,
                                           None,
                                           yearsafterdeath)
 
         filters_option = menu.get_option_by_name('filter')
         self.filter = filters_option.get_filter()
 
-        self.target_path = self.opts['target']
-        self.copyright = self.opts['cright']
-        self.ext = self.opts['ext']
-        self.encoding = self.opts['encoding']
-        self.css = self.opts['css']
-        self.noid = self.opts['nogid']
-        self.linkhome = self.opts['linkhome']
-        self.showbirth = self.opts['showbirth']
-        self.showdeath = self.opts['showdeath']
-        self.showspouse = self.opts['showspouse']
-        self.showparents = self.opts['showparents']
-        self.showhalfsiblings = self.opts['showhalfsiblings']
-        self.title = self.opts['title']
+        self.target_path = self.options['target']
+        self.copyright = self.options['cright']
+        self.ext = self.options['ext']
+        self.encoding = self.options['encoding']
+        self.css = self.options['css']
+        self.noid = self.options['nogid']
+        self.linkhome = self.options['linkhome']
+        self.showbirth = self.options['showbirth']
+        self.showdeath = self.options['showdeath']
+        self.showspouse = self.options['showspouse']
+        self.showparents = self.options['showparents']
+        self.showhalfsiblings = self.options['showhalfsiblings']
+        self.title = self.options['title']
         self.sort = Sort.Sort(self.database)
-        self.inc_gallery = self.opts['gallery']
-        self.inc_contact = self.opts['contactnote'] != u""\
-                       or self.opts['contactimg'] != u""
-        self.inc_download = self.opts['incdownload']
-        self.use_archive = self.opts['archive']
-        self.use_intro = self.opts['intronote'] != u""\
-                    or self.opts['introimg'] != u""
-        self.use_home = self.opts['homenote'] != u"" or\
-                        self.opts['homeimg'] != u""
+        self.inc_gallery = self.options['gallery']
+        self.inc_contact = self.options['contactnote'] != u""\
+                       or self.options['contactimg'] != u""
+        self.inc_download = self.options['incdownload']
+        self.use_archive = self.options['archive']
+        self.use_intro = self.options['intronote'] != u""\
+                    or self.options['introimg'] != u""
+        self.use_home = self.options['homenote'] != u"" or\
+                        self.options['homeimg'] != u""
 
     def write_report(self):
         if not self.use_archive:
@@ -2502,10 +2522,10 @@ class NavWebReport(Report):
             self.write_css(archive,self.target_path,self.css)
 
         # Copy Mainz Style Images
-        imgs = ["NWeb_Mainz_Bkgd.png",
-                "NWeb_Mainz_Header.png",
-                "NWeb_Mainz_Mid.png",
-                "NWeb_Mainz_MidLight.png",
+        imgs = ["Web_Mainz_Bkgd.png",
+                "Web_Mainz_Header.png",
+                "Web_Mainz_Mid.png",
+                "Web_Mainz_MidLight.png",
                 "document.png",
                 "favicon.ico"]
         # Copy the Creative Commons icon if the a Creative Commons
@@ -2553,24 +2573,24 @@ class NavWebReport(Report):
         if archive:
             fname = os.path.join(const.DATA_DIR, css_file)
             archive.add(fname,_NARRATIVE)
-            gname = os.path.join(const.DATA_DIR, "NWeb-Print_Default.css")
+            gname = os.path.join(const.DATA_DIR, "Web_Basic-Ash.css")
             archive.add(gname,_NARRATIVEPRINT)
         else:
             shutil.copyfile(os.path.join(const.DATA_DIR, css_file),
                             os.path.join(html_dir,_NARRATIVE))
-            shutil.copyfile(os.path.join(const.DATA_DIR, "NWeb-Print_Default.css"),
+            shutil.copyfile(os.path.join(const.DATA_DIR, "Web_Basic-Ash.css"),
                             os.path.join(html_dir,_NARRATIVEPRINT))
 
     def person_pages(self, ind_list, place_list, source_list, archive):
 
-        self.progress.set_pass(_('Creating individual pages'),len(ind_list) + 1)
+        self.progress.set_pass(_('Creating individual pages'), len(ind_list) + 1)
         self.progress.step()    # otherwise the progress indicator sits at 100%
                                 # for a short while from the last step we did,
                                 # which was to apply the privacy filter
 
         IndividualListPage(
             self.database, self.title, ind_list,
-            self.opts, archive, self.photo_list)
+            self.options, archive, self.photo_list)
 
         for person_handle in ind_list:
             self.progress.step()
@@ -2578,7 +2598,7 @@ class NavWebReport(Report):
 
             IndividualPage(
                 self.database, person, self.title, ind_list,
-                place_list, source_list, self.opts, archive, self.photo_list)
+                place_list, source_list, self.options, archive, self.photo_list)
 
     def surname_pages(self, ind_list, archive):
         """
@@ -2595,16 +2615,16 @@ class NavWebReport(Report):
             defname="index"
 
         SurnameListPage(
-            self.database, self.title, ind_list, self.opts, archive,
+            self.database, self.title, ind_list, self.options, archive,
             self.photo_list, SurnameListPage.ORDER_BY_NAME,defname)
 
         SurnameListPage(
-            self.database, self.title, ind_list, self.opts, archive,
+            self.database, self.title, ind_list, self.options, archive,
             self.photo_list, SurnameListPage.ORDER_BY_COUNT,"surnames_count")
 
         for (surname, handle_list) in local_list:
             SurnamePage(self.database, surname, handle_list,
-                        self.opts, archive, self.photo_list)
+                        self.options, archive, self.photo_list)
             self.progress.step()
 
     def source_pages(self, source_list, photo_list, archive):
@@ -2612,11 +2632,11 @@ class NavWebReport(Report):
         self.progress.set_pass(_("Creating source pages"),len(source_list))
 
         SourcesPage(self.database,self.title, source_list.keys(),
-                    self.opts, archive, photo_list)
+                    self.options, archive, photo_list)
 
         for key in list(source_list):
             SourcePage(self.database, self.title, key, source_list,
-                       self.opts, archive, photo_list)
+                       self.options, archive, photo_list)
             self.progress.step()
 
 
@@ -2625,13 +2645,13 @@ class NavWebReport(Report):
         self.progress.set_pass(_("Creating place pages"),len(place_list))
 
         PlaceListPage(
-            self.database, self.title, place_list, source_list, self.opts,
+            self.database, self.title, place_list, source_list, self.options,
             archive, self.photo_list)
 
         for place in place_list.keys():
             PlacePage(
                 self.database, self.title, place, source_list, place_list,
-                self.opts, archive, self.photo_list)
+                self.options, archive, self.photo_list)
             self.progress.step()
 
     def gallery_pages(self, photo_list, source_list, archive):
@@ -2639,15 +2659,15 @@ class NavWebReport(Report):
         self.progress.set_pass(_("Creating media pages"),len(photo_list))
 
         GalleryPage(self.database, self.title, source_list,
-                    self.opts, archive, self.photo_list)
+                    self.options, archive, self.photo_list)
 
         prev = None
         total = len(self.photo_list)
-        index = 1
         photo_keys = self.photo_list.keys()
         sort = Sort.Sort(self.database)
         photo_keys.sort(sort.by_media_title)
 
+        index = 1
         for photo_handle in photo_keys:
             gc.collect() # Reduce memory usage when there are many images.
             if index == total:
@@ -2655,7 +2675,7 @@ class NavWebReport(Report):
             else:
                 next = photo_keys[index]
             MediaPage(self.database, self.title, photo_handle, source_list,
-                      self.opts, archive, self.photo_list[photo_handle],
+                      self.options, archive, self.photo_list[photo_handle],
                       (prev, next, index, total))
             self.progress.step()
             prev = photo_handle
@@ -2664,18 +2684,18 @@ class NavWebReport(Report):
     def base_pages(self, photo_list, archive):
 
         if self.use_home:
-            HomePage(self.database, self.title, self.opts, archive, photo_list)
+            HomePage(self.database, self.title, self.options, archive, photo_list)
 
         if self.inc_contact:
-            ContactPage(self.database, self.title, self.opts,
+            ContactPage(self.database, self.title, self.options,
                         archive, photo_list)
 
         if self.inc_download:
-            DownloadPage(self.database, self.title, self.opts,
+            DownloadPage(self.database, self.title, self.options,
                          archive, photo_list)
 
         if self.use_intro:
-            IntroductionPage(self.database, self.title, self.opts,
+            IntroductionPage(self.database, self.title, self.options,
                              archive, photo_list)
 
     def store_file(self,archive, html_dir,from_path,to_path):
@@ -2771,7 +2791,7 @@ class NavWebOptions(MenuReportOptions):
         cright.set_help( _("The copyright to be used for the web files"))
         menu.add_option(category_name, "cright", cright)
 
-        encoding = EnumeratedListOption(_('Character set encoding'), 'utf-8' )
+        encoding = EnumeratedListOption(_('Character set encoding'), _CHARACTER_SETS[0][1] )
         for eopt in _CHARACTER_SETS:
             encoding.add_item(eopt[1], eopt[0])
         encoding.set_help( _("The encoding to be used for the web files"))
@@ -2865,10 +2885,15 @@ class NavWebOptions(MenuReportOptions):
         menu.add_option(category_name, 'incpriv', incpriv)
 
         self.__living = EnumeratedListOption(_("Living People"),
-                                             self.__INCLUDE_LIVING_VALUE )
-        self.__living.add_item(LivingProxyDb.MODE_EXCLUDE, _("Exclude"))
-        self.__living.add_item(LivingProxyDb.MODE_RESTRICT, _("Restrict"))
-        self.__living.add_item(self.__INCLUDE_LIVING_VALUE, _("Include"))
+                                             _INCLUDE_LIVING_VALUE )
+        self.__living.add_item(LivingProxyDb.MODE_EXCLUDE_ALL, 
+                               _("Exclude"))
+        self.__living.add_item(LivingProxyDb.MODE_INCLUDE_LAST_NAME_ONLY, 
+                               _("Include Last Name Only"))
+        self.__living.add_item(LivingProxyDb.MODE_INCLUDE_FULL_NAME_ONLY, 
+                               _("Include Full Name Only"))
+        self.__living.add_item(_INCLUDE_LIVING_VALUE, 
+                               _("Include"))
         self.__living.set_help(_("How to handle living people"))
         menu.add_option(category_name, "living", self.__living)
         self.__living.connect('value-changed', self.__living_changed)
@@ -3104,15 +3129,16 @@ class MiniTree:
 
 #-------------------------------------------------------------------------
 #
+#            Register Plugin
 #
-#
-#-------------------------------------------------------------------------
-register_report(
+# -------------------------------------------
+pmgr = PluginManager.get_instance()
+pmgr.register_report(
     name = 'wilsnavwebpage',
     category = CATEGORY_WEB,
     report_class = NavWebReport,
     options_class = NavWebOptions,
-    modes = MODE_GUI | MODE_CLI,
+    modes = PluginManager.REPORT_MODE_GUI | PluginManager.REPORT_MODE_CLI,
     translated_name = _("Wil's Narrated Web Site"),
     status = _("Stable"),
     author_name = "Donald N. Allingham, William Bell",
@@ -3120,3 +3146,4 @@ register_report(
     description = _("Produces web (HTML) pages for individuals, or a set of "
                     "individuals"),
     )
+
