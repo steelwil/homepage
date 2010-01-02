@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wc-entries
+   xmlns="svn:">
+<entry
+   committed-rev="61"
+   name=""
+   committed-date="2009-03-10T18:57:16.477760Z"
+   url="http://google-friend-connect-plugins.googlecode.com/svn/trunk/wordpress/src"
+   last-author="anindom"
+   kind="dir"
+   uuid="ac345c3a-f2ed-11dd-a320-db7d8e7a638f"
+   repos="http://google-friend-connect-plugins.googlecode.com/svn"
+   revision="74"/>
+<entry
+   committed-rev="6"
+   name="rpc_relay.html"
+   text-time="2009-03-11T17:45:16.000000Z"
+   committed-date="2009-02-04T21:10:18.443646Z"
+   checksum="b2e7fa57078463971500b77fe8e74bba"
+   last-author="anindom"
+   kind="file"
+   prop-time="2009-03-11T17:45:15.000000Z"/>
+<entry
+   committed-rev="6"
+   name="server_code.php"
+   text-time="2009-03-11T17:45:16.000000Z"
+   committed-date="2009-02-04T21:10:18.443646Z"
+   checksum="78564e78937a29e61580c4c9b4dfa7d0"
+   last-author="anindom"
+   kind="file"
+   prop-time="2009-03-11T17:45:15.000000Z"/>
+<entry
+   committed-rev="61"
+   name="fc_plugin.php"
+   text-time="2009-03-11T17:45:16.000000Z"
+   committed-date="2009-03-10T18:57:16.477760Z"
+   checksum="0833381c7649b29228c0fc067adae26e"
+   last-author="anindom"
+   kind="file"
+   prop-time="2009-03-11T17:45:16.000000Z"/>
+<entry
+   committed-rev="6"
+   name="README"
+   text-time="2009-03-11T17:45:16.000000Z"
+   committed-date="2009-02-04T21:10:18.443646Z"
+   checksum="4d2311550e5365038d958a599cdd18cc"
+   last-author="anindom"
+   kind="file"
+   prop-time="2009-03-11T17:45:16.000000Z"/>
+<entry
+   committed-rev="6"
+   name="canvas.html"
+   text-time="2009-03-11T17:45:16.000000Z"
+   committed-date="2009-02-04T21:10:18.443646Z"
+   checksum="6277113812d955f2132a1ee729e326d3"
+   last-author="anindom"
+   kind="file"
+   prop-time="2009-03-11T17:45:16.000000Z"/>
+</wc-entries>

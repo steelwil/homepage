@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wc-entries
+   xmlns="svn:">
+<entry
+   committed-rev="61"
+   name=""
+   committed-date="2009-03-10T18:57:16.477760Z"
+   url="http://google-friend-connect-plugins.googlecode.com/svn/trunk/wordpress"
+   last-author="anindom"
+   kind="dir"
+   uuid="ac345c3a-f2ed-11dd-a320-db7d8e7a638f"
+   repos="http://google-friend-connect-plugins.googlecode.com/svn"
+   revision="74"/>
+<entry
+   name="src"
+   kind="dir"/>
+</wc-entries>
