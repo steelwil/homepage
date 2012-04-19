@@ -27,4 +27,6 @@ src/e.debug
 e-*.deb
 e-*.rpm
 e-*.tar.gz
+*(copy)*
+*-old/*
 
