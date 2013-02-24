@@ -3,29 +3,12 @@ body
 	background-image: url('images/Web_Mainz_Mid.jpg');
 }
 
-p { margin: 0.5em; }
+p { margin: 0.5em; } 
 
-div.letter
+.name
 {
-	clear: both;
-	border-width: 0;
-	border-bottom: 1px;
-	border-style: solid;
-	margin-bottom: 0.5em;
-
-}
-
-div.place, div.source, div.surname, div.name
-{
-	display:inline-block;
-	width: 18em;
-	padding-left: 1em;
-}
-
-div.section
-{
-	padding-bottom: 1em;
-	width: 100%;
+	width: 16em;
+	float: left;
 }
 
 .value
@@ -36,7 +19,7 @@ div.section
 img.person
 {
 	float: right;
-	height: 238px;
+	height: 238px;	
 }
 
 div.fbox, div.mbox

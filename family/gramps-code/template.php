@@ -31,16 +31,17 @@ function head($title, $surname)
 <body>";
 
 if ($surname != '')
-	$html = $html."<p><a href=\"surname-list.php\">Surnames</a> <a href=\"place-list.php\">Places</a> <a href=\"surname.php?surname=".$surname."\">".$surname."</a></p>\n";
+	$html = $html."<p><a href=\"surname-list.php\">Surnames</a> <a href=\"surname.php?surname=".$surname."\">".$surname."</a></p>\n";
 else
-	$html = $html."<p><a href=\"surname-list.php\">Surnames</a> <a href=\"place-list.php\">Places</a></p>\n";
+	$html = $html."<p><a href=\"surname-list.php\">Surnames</a></p>\n";
    return $html;
 }
 
 function foot()
 {
 	//$html = "<p>Copyright 2010 - " . date('Y') . "</p>
-	$html = "</body>\n</html>";
+	$html = "</body>
+	</html>";
    return $html;
 }
 ?>

@@ -23,18 +23,11 @@
   try
   {
     //open the database
-    $db = new PDO('sqlite:../../.sqlite/gramps1.db');
+    $db = new PDO('sqlite:../../.sqlite/gramps.db');
 
     //now output the data to a simple html table...
 
-    $result = $db->query('
-		select
-			surname,
-			count(1) as Number
-		from surname
-		group by surname
-		order by upper(surname)');
- 	$prevLetter = 'ZZZ';
+    $result = $db->query('SELECT surname, count(1) as Number from surname group by surname');
     foreach($result as $row)
     {
 		$surname = $row['surname'];
@@ -42,17 +35,8 @@
 		{
 			$surname = "Unknown";
 		}
-		$currentLetter = strtoupper($surname[0]);
-		if ($prevLetter != $currentLetter)
-		{
-			if ($prevLetter != 'ZZZ')
-				print("</div>\n");
-			$prevLetter = $currentLetter;
-			print("<div class=\"section\">\n\t<div class=\"letter\">".$prevLetter."</div>\n");
-		}
-		print("\t<div class=\"surname\"><a href=\"surname.php?surname=".$surname."\">".$surname."</a> (".$row['Number'].")</div>\n");
+		print("<p><span class=\"name\"><a href=\"surname.php?surname=".$surname."\">".$surname."</a></span> <span class=\"value\">".$row['Number']."</span></p>\n");
     }
-	print("</div>\n");
 
     // close the database connection
     $db = NULL;

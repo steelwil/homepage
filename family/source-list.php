@@ -18,8 +18,8 @@
     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 */
   require_once 'template.php';
-  echo head('Surnames', '');
-  print("\n<h3>Surnames</h3>\n");
+  echo head('Sources', '');
+  print("\n<h3>Sources</h3>\n");
   try
   {
     //open the database
@@ -29,28 +29,27 @@
 
     $result = $db->query('
 		select
-			surname,
-			count(1) as Number
-		from surname
-		group by surname
-		order by upper(surname)');
- 	$prevLetter = 'ZZZ';
+			gid,
+			title
+		from source
+		where private = 0
+		order by title');
+	$prevLetter = 'ZZZ';
     foreach($result as $row)
     {
-		$surname = $row['surname'];
-		if ($surname == '')
+		$title = $row['title'];
+		if ($title == '')
 		{
-			$surname = "Unknown";
+			$title = "Unknown";
 		}
-		$currentLetter = strtoupper($surname[0]);
-		if ($prevLetter != $currentLetter)
+		if ($prevLetter != $title[0])
 		{
 			if ($prevLetter != 'ZZZ')
 				print("</div>\n");
-			$prevLetter = $currentLetter;
+			$prevLetter = $title[0];
 			print("<div class=\"section\">\n\t<div class=\"letter\">".$prevLetter."</div>\n");
 		}
-		print("\t<div class=\"surname\"><a href=\"surname.php?surname=".$surname."\">".$surname."</a> (".$row['Number'].")</div>\n");
+		print("\t<div class=\"source\"><a href=\"source.php?gid=".$row[gid]."\">".$title."</a></div>\n");
     }
 	print("</div>\n");
 
