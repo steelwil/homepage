@@ -53,7 +53,7 @@ This program converts a HEX representation of a IEEE 754 floating number to a fl
 --------------------------------------------------------------------------------
 This program converts a floating number to the HEX value
 Note the floating number must be positive
-Some presision is lost due to the nature of the standard
+Some precision is lost due to the nature of the standard
 
 Test Case:
 1.23456789 = 3F9E0652 = 1.234567880630493
@@ -98,25 +98,27 @@ The original HP published TVM program
 
 NOTE: Use this program with SOLVER
 
-For payments at the beginnin
+For payments:
+      at the beginning of each month set flag 00 to 1
+      at the end of each month reset flag 00 to 0
 
 Test case: N = 36, I%YR = 10.5, PV = 5750, FV = 0, PMT = -186.8890501519492
 
 00 { 80-Byte Prgm }
-01▸LBL "TVM"
+01▸LBL "TVM"       ! Declares the menu variables.
 02 MVAR "N"
 03 MVAR "I%YR"
 04 MVAR "PV"
 05 MVAR "PMT"
 06 MVAR "FV"
-07 1
-08 ENTER
+07 1               ! Calculates the monthly interest
+08 ENTER           ! rate expressed as a decimal fraction i.
 09 ENTER
 10 RCL "I%YR"
 11 %
 12 12
 13 ÷
-14 STO ST T         ! STO .
+14 STO ST T        ! X = i, Y = 1, Z = 1, T = i (STO .)
 15 FC? 00
 16 CLX
 17 +
@@ -143,8 +145,8 @@ Test case: N = 36, I%YR = 10.5, PV = 5750, FV = 0, PMT = -186.8890501519492
 This program does not work there is a typo somewhere and I cannot find the original formula
 I may have to derive it from first principals again.
 
-This program calculates an investment with fixed monthly instalments
-The instalments are increases once a year by %GR
+This program calculates an investment with fixed monthly installments
+The installments are increases once a year by %GR
 It calculates based on compounded interest per month.
 
 NOTE: Use this program with SOLVER
@@ -224,11 +226,11 @@ NOTE: Use this program with SOLVER
 05 MVAR "PMT"
 06 MVAR "FV"
 07 RCL "I%YR"
-08 36525
+08 36525           ! days per year x 100
 09 ÷
 10 1
 11 +
-12 30.4375
+12 30.4375         ! average days per month
 13 Y↑X
 14 STO 00
 15 RCL "N"
@@ -332,7 +334,7 @@ This program solves for:   ax² + bx + c         x     y     z
 11 STO 04
 12 INPUT "c"
 13 STO 05
-14 XEQ 01      ! Execute at Lable 01
+14 XEQ 01      ! Execute at Label 01
 15 STO 07
 16 RCL 00
 17 RCL 01
