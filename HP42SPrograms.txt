@@ -105,21 +105,21 @@ For payments:
 Test case: N = 36, I%YR = 10.5, PV = 5750, FV = 0, PMT = -186.8890501519492
 
 00 { 80-Byte Prgm }
-01▸LBL "TVM"       ! Declares the menu variables.
+01▸LBL "TVM"       Declares the menu variables.
 02 MVAR "N"
 03 MVAR "I%YR"
 04 MVAR "PV"
 05 MVAR "PMT"
 06 MVAR "FV"
-07 1               ! Calculates the monthly interest
-08 ENTER           ! rate expressed as a decimal fraction i.
+07 1               Calculates the monthly interest
+08 ENTER           rate expressed as a decimal fraction i.
 09 ENTER
 10 RCL "I%YR"
 11 %
 12 12
 13 ÷
-14 STO ST T        ! X = i, Y = 1, Z = 1, T = i (STO .)
-15 FC? 00
+14 STO ST T        X = i, Y = 1, Z = 1, T = i (STO .)
+15 FC? 00          0 = end mode, 1 = begin mode
 16 CLX
 17 +
 18 R↓
@@ -127,12 +127,12 @@ Test case: N = 36, I%YR = 10.5, PV = 5750, FV = 0, PMT = -186.8890501519492
 20 RCL "N"
 21 +/-
 22 Y↑X
-23 1
+23 1               Calculates 1 - (1 + i)⁻ᴺ
 24 X<>Y
 25 -
-26 LASTX
+26 LASTX           Calculates FV(1 + i)⁻ᴺ
 27 RCL× "FV"
-28 R↓
+28 R↓              Calculates (1 - ip)[1 - (1 + i)⁻ᴺ] / i
 29 X<>Y
 30 ÷
 31 ×
@@ -153,12 +153,12 @@ NOTE: Use this program with SOLVER
 
 00 { 128-Byte Prgm }
 01▸LBL "TMVG"
-02 MVAR "YRS"       !Years
-03 MVAR "I%YR"      !Interest per year
-04 MVAR "%GR"       !Interest growth per year
-05 MVAR "PV"        !Present value
-06 MVAR "PMT"       !Payment
-07 MVAR "FV"        !Final Value
+02 MVAR "YRS"      Years
+03 MVAR "I%YR"     Interest per year
+04 MVAR "%GR"      Interest growth per year
+05 MVAR "PV"       Present value
+06 MVAR "PMT"      Payment
+07 MVAR "FV"       Final Value
 08 RCL "YRS"
 09 12
 10 ×
@@ -226,11 +226,11 @@ NOTE: Use this program with SOLVER
 05 MVAR "PMT"
 06 MVAR "FV"
 07 RCL "I%YR"
-08 36525           ! days per year x 100
+08 36525           days per year x 100
 09 ÷
 10 1
 11 +
-12 30.4375         ! average days per month
+12 30.4375         average days per month
 13 Y↑X
 14 STO 00
 15 RCL "N"
@@ -334,7 +334,7 @@ This program solves for:   ax² + bx + c         x     y     z
 11 STO 04
 12 INPUT "c"
 13 STO 05
-14 XEQ 01      ! Execute at Label 01
+14 XEQ 01          Execute at Label 01
 15 STO 07
 16 RCL 00
 17 RCL 01
@@ -374,6 +374,7 @@ This program solves for:   ax² + bx + c         x     y     z
 
 
 --------------------------------------------------------------------------------
+Calculates the area of a circle
 00 { 11-Byte Prgm }
 01▸LBL "AREA"
 02 X↑2
