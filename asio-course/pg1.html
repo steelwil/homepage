@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>A guide to getting started with asio</title>
+<link rel="stylesheet" type="text/css" href="basic.css">
+</head>
+<body>
+<div class="nav">
+<a href="pg1.html"><img src="prev.png" alt="Prev"></a><a accesskey="u" href="pg1.html"><img src="up.png" alt="Up"></a><a href="pg1.html"><img src="home.png" alt="Home"></a><a href="pg2.html"><img src="next.png" alt="Next"></a>
+</div>
+<h1 class="ipsType_pagetitle">A guide to getting started with asio</h1>
+<div class="desc">
+Posted by <strong><a title="" href="http://www.gamedev.net/user/64367-drew_benton/" class=
+"url fn name ___hover___member _hoversetup" id="anonymous_element_3" name=
+"anonymous_element_3"><span>Drew_Benton</span></a></strong>, 31 January 2011 ~ 190,508 views
+</div>
+<br>
+<div class="entry_content ipsType_textblock ipsPad">
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/">asio</a> is "is a cross-platform C++ library for network
+and low-level I/O programming that provides developers with a consistent asynchronous model using a modern C++ approach." It
+currently has <a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/WhoIsUsingAsio">many users</a> and is part of the <a rel="nofollow external" title="External link"
+class="bbc_url" href="http://www.boost.org/">boost</a> family of libraries.
+<br>
+<br>
+Before getting started, we will want to read over the asio <a rel="nofollow external" title="External link" class="bbc_url"
+href="http://think-async.com/Asio/asio-1.11.0/doc/asio/overview.html">overview</a>. It covers a lot of useful information
+that we should understand the basics of first. This guide is not meant to teach the complete ins and outs of asio library;
+that is what the documentation is for! This guide will point us in a practical direction for learning the library and getting on
+our way to using it in our own applications.
+<br>
+<br>
+In addition, we might also want to check out the <a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://blog.think-async.com/">blog</a> of the asio author as well. There is a plethora of tidbits of useful information
+there as well as many stream of conscious posts by the author. Another good site to reference is <a rel="nofollow external" title=
+"External link" class="bbc_url" href="http://en.highscore.de/cpp/boost/index.html">this one</a>. It is actually a book that has
+been released online so consider supporting that author for their hard work!
+<br>
+<br>
+At this time, the purpose of this guide needs to be explained. This guide is not going to teach any programming languages. The
+reader must already be comfortable with C++ to get the most out of the boost libraries, especially asio. This guide is not
+going to teach network programming in general. The reader should already understand that topic. This guide will simply help get the
+reader started using the asio library for practical network programming. In other words, this guide's goal is to direct the
+reader along a path of learning that is most useful for learning asio. It is still up to the reader to spend the time
+reading the official docs and doing the other research required when using a new library for their projects.
+<br>
+<br>
+Another thing to note is the examples were compiled only on Windows. While an effort has been made to make them mostly portable,
+there are a few that might need a few logic changes to compile on other platforms or using other compilers. All of the source
+examples have been zipped up and attached. No project files are included, only the actual source files. This is to make looking
+over the code more convenient if we do not want to copy and paste the examples. Boost must be properly setup and installed to use
+them though! We can refer to the main boost site for such instructions.
+<br>
+<br>
+Lastly, this guide is written from my own personal opinions and experiences. While I work hard to make sure no misinformation is
+spread, sometimes mistakes are made. Please point out any errors or inconsistency if you are also experienced in this domain and I
+will be happy to correct them.
+<br>
+<br>
+Without further adieu, let us get started!
+<br>
+<br>
+1. <a title="" class="bbc_url" href="pg2.html">The basics of io_service</a>
+<br>
+2. <a title="" class="bbc_url" href="pg3.html">Getting to know std::bind</a>
+<br>
+3. <a title="" class="bbc_url" href="pg4.html">Giving io_service some work to do</a>
+<br>
+4. <a title="" class="bbc_url" href="pg5.html">Serializing our workload with strand</a>
+<br>
+5. <a title="" class="bbc_url" href="pg6.html">Error handling</a>
+<br>
+6. <a title="" class="bbc_url" href="pg7.html">Timers</a>
+<br>
+7. <a title="" class="bbc_url" href="pg8.html">Networking basics: connectors and acceptors (TCP)</a>
+<br>
+8. <a title="" class="bbc_url" href="pg9.html">Networking basics: binary protocol sending and receiving (TCP)</a>
+<br>
+9. <a title="" class="bbc_url" href="pg10.html">A asio network wrapper (TCP)</a>
+<br>
+10. <a title="" class="bbc_url" href="pg11.html">The road ahead</a>
+<br>
+
+<h4>Attached Files</h4>
+<p><a title="Download attachment" href="Examples.zip">Examples.zip</a></p>
+
+<hr>
+<div class="nav">
+<a accesskey="p" href="pg1.html"><img src="prev.png" alt="Prev"></a><a accesskey="u" href="pg1.html"><img src="up.png" alt="Up"></a><a accesskey="h" href="pg1.html"><img src="home.png" alt="Home"></a><a accesskey="n" href="pg2.html"><img src="next.png" alt="Next"></a>
+</div>
+</div>
+</body>
+</html>

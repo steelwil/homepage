@@ -1,0 +1,4 @@
+RewriteEngine on
+RewriteCond %{HTTP_REFERER} !^$
+RewriteCond %{HTTP_REFERER} !^http://(.+\.)?frog\.za\.net/ [NC]
+RewriteRule \.(gif|jpe?g|png)$ - [F,NC,L]

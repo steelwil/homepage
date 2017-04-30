@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="HTML Tidy for HTML5 for Linux version 4.9.32" />
+<title>Getting to know std::bind</title>
+<link rel="stylesheet" type="text/css" href="basic.css" />
+</head>
+<body>
+<div class="nav">
+<a href="pg2.html"><img src="prev.png" alt="Prev"></a><a href="pg1.html"><img src="up.png" alt="Up"></a><a href="pg1.html"><img src="home.png" alt="Home"></a><a href="pg4.html"><img src="next.png" alt="Next"></a>
+</div>
+<h1>A guide to getting started with asio</h1>
+<div>
+Posted by <strong><a title="" href="http://www.gamedev.net/user/64367-drew_benton/" id="anonymous_element_3" name=
+"anonymous_element_3">Drew_Benton</a></strong>, 31 January 2011 ~ 190,508 views
+</div>
+<br />
+<div>
+<strong>2. Getting to know std::bind</strong>
+<br />
+<br />
+Before we look at how to give the io_service real work to do, we need to establish a basic understanding of another standard library,
+<a rel="nofollow external" title="External link" href="http://www.cplusplus.com/reference/functional/bind/">std::bind</a>.
+The first time I saw std::bind I had no idea of what was going on with it and really had no idea why such a library would be
+needed. After using asio though, I could easily see and appreciate how useful the library is. At this time, I would
+recommend the reader to read up on the std::bind docs a little to have an idea of what the library does before moving on.
+<br />
+<br />
+Wrapping a function invocation with bind creates an object. Consider the following example.
+<br />
+<br />
+<strong>Example 2a</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl lin">    3 </span>
+<span class="hl lin">    4 </span><span class="hl kwb">void</span> <span class="hl kwd">F1</span><span class="hl opt">()</span>
+<span class="hl lin">    5 </span><span class="hl opt">{</span>
+<span class="hl lin">    6 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">    7 </span><span class="hl opt">}</span>
+<span class="hl lin">    8 </span>
+<span class="hl lin">    9 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class="hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">   10 </span><span class="hl opt">{</span>
+<span class="hl lin">   11 </span>    std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(</span> F1 <span class="hl opt">)();</span>
+<span class="hl lin">   12 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   13 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>F1
+</pre>
+
+If we run the program, we would see no output. This is because we created a function invocation object, but did not actually call
+it. To call it, we simply use the () operator of the object.
+<br />
+<br />
+<strong>Example 2b</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl lin">    3 </span>
+<span class="hl lin">    4 </span><span class="hl kwb">void</span> <span class="hl kwd">F1</span><span class="hl opt">()</span>
+<span class="hl lin">    5 </span><span class="hl opt">{</span>
+<span class="hl lin">    6 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">    7 </span><span class="hl opt">}</span>
+<span class="hl lin">    8 </span>
+<span class="hl lin">    9 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class="hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">   10 </span><span class="hl opt">{</span>
+<span class="hl lin">   11 </span>    std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>F1 <span class="hl opt">)();</span>
+<span class="hl lin">   12 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   13 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>F1
+</pre>
+
+Now when we run the example, we see the output! What if we had arguments to pass? Adding them is pretty easy as well.
+<br />
+<br />
+<strong>Example 2c</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl lin">    3 </span>
+<span class="hl lin">    4 </span><span class="hl kwb">void</span> <span class="hl kwd">F2</span><span class="hl opt">(</span> <span class="hl kwb">int</span> i<span class="hl opt">,</span> <span class="hl kwb">float</span> f <span class="hl opt">)</span>
+<span class="hl lin">    5 </span><span class="hl opt">{</span>
+<span class="hl lin">    6 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;i: &quot;</span> <span class="hl opt">&lt;&lt;</span> i <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">    7 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;f: &quot;</span> <span class="hl opt">&lt;&lt;</span> f <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">    8 </span><span class="hl opt">}</span>
+<span class="hl lin">    9 </span>
+<span class="hl lin">   10 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class="hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">   11 </span><span class="hl opt">{</span>
+<span class="hl lin">   12 </span>    std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>F2<span class="hl opt">,</span> <span class="hl num">42</span><span class="hl opt">,</span> <span class="hl num">3.14</span>f <span class="hl opt">)();</span>
+<span class="hl lin">   13 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   14 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>i: 42
+<span class="hl lin">    2 </span>f: 3.14
+</pre>
+
+If we run the program, we will see the expected output. We could easily swap out the hard coded values with variables as well.
+There are a couple of important things here to notice as well. The parameters belong to the function object and are not passed
+through the calling operator! When we bind the parameters along with the function, we have to match the signature exactly or we
+will get a ton of hard to read errors that will be difficult to look through at first. When we get errors with std::bind, we need
+to compare our function declarations and the parameters that are being used to check for any type mismatches.
+<br />
+<br />
+The last example we have in our crash course to std::bind will show using bind of a class member function. This example is
+similar to before, but there is one important difference.
+<br />
+<br />
+<strong>Example 2d</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl lin">    3 </span>
+<span class="hl lin">    4 </span><span class="hl kwc">class</span> MyClass
+<span class="hl lin">    5 </span><span class="hl opt">{</span>
+<span class="hl lin">    6 </span><span class="hl kwc">public</span><span class="hl opt">:</span>
+<span class="hl lin">    7 </span>    <span class="hl kwb">void</span> <span class="hl kwd">F3</span><span class="hl opt">(</span> <span class="hl kwb">int</span> i<span class="hl opt">,</span> <span class="hl kwb">float</span> f <span class="hl opt">)</span>
+<span class="hl lin">    8 </span>    <span class="hl opt">{</span>
+<span class="hl lin">    9 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;i: &quot;</span> <span class="hl opt">&lt;&lt;</span> i <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   10 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;f: &quot;</span> <span class="hl opt">&lt;&lt;</span> f <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   11 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   12 </span><span class="hl opt">};</span>
+<span class="hl lin">   13 </span>
+<span class="hl lin">   14 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class="hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">   15 </span><span class="hl opt">{</span>
+<span class="hl lin">   16 </span>    MyClass c<span class="hl opt">;</span>
+<span class="hl lin">   17 </span>    std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>MyClass<span class="hl opt">::</span>F3<span class="hl opt">, &amp;</span>c<span class="hl opt">,</span> <span class="hl num">42</span><span class="hl opt">,</span> <span class="hl num">3.14</span>f <span class="hl opt">)();</span>
+<span class="hl lin">   18 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   19 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>i: 42
+<span class="hl lin">    2 </span>f: 3.14
+</pre>
+
+We must pass the address of the class object to invoke after the class function! If we were calling bind from inside the class, we
+could then use the this pointer or subsequently <a rel="nofollow external" title="External link" href=
+"http://www.cplusplus.com/reference/memory/enable_shared_from_this/">enable_shared_from_this</a>() if our class supported
+it. Please note in all these examples, we are simply using the () operator to call the object. In practice, we only do this if we
+are receiving a std::bind object to actually invoke. Otherwise, we would just use normal semantics to call the function! Be sure
+to refer to the std::bind documentation for more information and references.
+<br />
+<br />
+Now that std::bind has been quickly introduced, we must also go over another important concept. In the threaded asio
+example, the io_service object as made global and moved to the top of the program. For any modular and reusable code this is not
+desired. However, if we were to try to use io_service with std::bind, we would get a non-copyable error, since the io_service
+cannot be copied and that is what std::bind does for us behind the scenes. To get around this, we must make use of shared_ptr
+again.
+<br />
+<br />
+Rather than using a regular io_service object, we must use a shared_ptr object of io_service and pass that around. The shared_ptr
+is a reference counted smart pointer so it is copyable and thus compatible with std::bind. The same applies for many other
+non-copyable objects as well; we have to wrap them in shared_ptrs to pass them if we need to. Let us revisit the threaded example
+using our newly learned concepts.
+<br />
+<br />
+<strong>Example 2e</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;thread&gt;</span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;memory&gt;</span>
+<span class="hl lin">    4 </span><span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl lin">    5 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    6 </span>
+<span class="hl lin">    7 </span><span class="hl kwb">void</span> <span class="hl kwd">WorkerThread</span><span class="hl opt">(</span> std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service <span class="hl opt">&gt;</span> io_service <span class="hl opt">)</span>
+<span class="hl lin">    8 </span><span class="hl opt">{</span>
+<span class="hl lin">    9 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;Thread Start</span><span class="hl esc">\n</span><span class="hl str">&quot;</span><span class="hl opt">;</span>
+<span class="hl lin">   10 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">run</span><span class="hl opt">();</span>
+<span class="hl lin">   11 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;Thread Finish</span><span class="hl esc">\n</span><span class="hl str">&quot;</span><span class="hl opt">;</span>
+<span class="hl lin">   12 </span><span class="hl opt">}</span>
+<span class="hl lin">   13 </span>
+<span class="hl lin">   14 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class="hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">   15 </span><span class="hl opt">{</span>
+<span class="hl lin">   16 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service <span class="hl opt">&gt;</span> <span class="hl kwd">io_service</span><span class="hl opt">(</span>
+<span class="hl lin">   17 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service
+<span class="hl lin">   18 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   19 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>work <span class="hl opt">&gt;</span> <span class="hl kwd">work</span><span class="hl opt">(</span>
+<span class="hl lin">   20 </span>        <span class="hl kwa">new</span> <span class="hl opt">::</span>asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">work</span><span class="hl opt">( *</span>io_service <span class="hl opt">)</span>
+<span class="hl lin">   21 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   22 </span>
+<span class="hl lin">   23 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;Press [return] to exit.&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   24 </span>
+<span class="hl lin">   25 </span>    std<span class="hl opt">::</span>thread worker_threads<span class="hl opt">[</span><span class="hl num">4</span><span class="hl opt">];</span>
+<span class="hl lin">   26 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">4</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">   27 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   28 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">] =</span> std<span class="hl opt">::</span><span class="hl kwd">thread</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>WorkerThread<span class="hl opt">,</span> io_service<span class="hl opt">));</span>
+<span class="hl lin">   29 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   30 </span>
+<span class="hl lin">   31 </span>    std<span class="hl opt">::</span>cin<span class="hl opt">.</span><span class="hl kwd">get</span><span class="hl opt">();</span>
+<span class="hl lin">   32 </span>
+<span class="hl lin">   33 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">stop</span><span class="hl opt">();</span>
+<span class="hl lin">   34 </span>
+<span class="hl lin">   35 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">4</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">   36 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   37 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">].</span><span class="hl kwd">join</span><span class="hl opt">();</span>
+<span class="hl lin">   38 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   39 </span>
+<span class="hl lin">   40 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   41 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>Press [return] to exit.
+<span class="hl lin">    2 </span>Thread Start
+<span class="hl lin">    3 </span>Thread Start
+<span class="hl lin">    4 </span>Thread Start
+<span class="hl lin">    5 </span>Thread Start
+<span class="hl lin">    6 </span>
+<span class="hl lin">    7 </span>Thread Finish
+<span class="hl lin">    8 </span>Thread Finish
+<span class="hl lin">    9 </span>Thread Finish
+<span class="hl lin">   10 </span>Thread Finish
+</pre>
+
+Pretty cool, huh? We can use shared_ptr on the io_service to make it copyable so we can bind it to the worker thread function that
+we use as the thread handler. When we run the program, we should get the exact same behavior as before. At this point it is
+strongly advised to read up more on std::bind, shared_ptr, and even the asio topics already covered if they do not feel
+comfortably understood yet. We will be making heavy use of them all very soon!
+<br />
+<br />
+When working with threaded programs, we must ensure that we synchronize access to any global data or shared data. Our previous
+thread example has a flaw that was hackishly worked around. Does it stand out? The std::cout object is a global object. Writing to
+it from different threads at once can cause output formatting issues. To ensure we do not run into such issues since they hamper
+debugging efforts, we will want to make use of a global mutex. The std::thread library provides us with the classes we need to
+accomplish this.
+<br />
+<br />
+The next example will make use of a <a rel="nofollow external" title="External link" href=
+"http://www.cplusplus.com/reference/mutex/">mutex</a>
+object. We should also read up on the <a rel="nofollow external" title="External link" href=
+"http://www.boost.org/doc/libs/1_60_0/doc/html/thread/synchronization.html">synchronization</a> topics as well. We will simply
+correct the previous example to handle the output as it should be handled now. In addition, we will also make use of the thread id
+functionality of std::thread to identify our threads. More information about that feature can be found <a rel="nofollow external"
+title="External link" href=
+"http://www.boost.org/doc/libs/1_60_0/doc/html/thread/thread_management.html#thread.thread_management.thread_ids">here</a> in
+addition.
+<br />
+<br />
+<strong>Example 2f</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;memory&gt;</span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;thread&gt;</span>
+<span class="hl lin">    4 </span><span class="hl ppc">#include &lt;mutex&gt;</span>
+<span class="hl lin">    5 </span><span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl lin">    6 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    7 </span>
+<span class="hl lin">    8 </span>std<span class="hl opt">::</span>mutex global_stream_lock<span class="hl opt">;</span>
+<span class="hl lin">    9 </span>
+<span class="hl lin">   10 </span><span class="hl kwb">void</span> <span class="hl kwd">WorkerThread</span><span class="hl opt">(</span> std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service <span class="hl opt">&gt;</span> io_service <span class="hl opt">)</span>
+<span class="hl lin">   11 </span><span class="hl opt">{</span>
+<span class="hl lin">   12 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   13 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span>
+<span class="hl lin">   14 </span>        <span class="hl str">&quot;] Thread Start&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   15 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   16 </span>
+<span class="hl lin">   17 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">run</span><span class="hl opt">();</span>
+<span class="hl lin">   18 </span>
+<span class="hl lin">   19 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   20 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span>
+<span class="hl lin">   21 </span>        <span class="hl str">&quot;] Thread Finish&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   22 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   23 </span><span class="hl opt">}</span>
+<span class="hl lin">   24 </span>
+<span class="hl lin">   25 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class="hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">   26 </span><span class="hl opt">{</span>
+<span class="hl lin">   27 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service <span class="hl opt">&gt;</span> <span class="hl kwd">io_service</span><span class="hl opt">(</span>
+<span class="hl lin">   28 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service
+<span class="hl lin">   29 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   30 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>work <span class="hl opt">&gt;</span> <span class="hl kwd">work</span><span class="hl opt">(</span>
+<span class="hl lin">   31 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">work</span><span class="hl opt">( *</span>io_service <span class="hl opt">)</span>
+<span class="hl lin">   32 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   33 </span>
+<span class="hl lin">   34 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   35 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   36 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Press [return] to exit.&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   37 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   38 </span>
+<span class="hl lin">   39 </span>    std<span class="hl opt">::</span>thread worker_threads<span class="hl opt">[</span><span class="hl num">4</span><span class="hl opt">];</span>
+<span class="hl lin">   40 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">4</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">   41 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   42 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">] =</span> std<span class="hl opt">::</span><span class="hl kwd">thread</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>WorkerThread<span class="hl opt">,</span> io_service <span class="hl opt">) );</span>
+<span class="hl lin">   43 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   44 </span>
+<span class="hl lin">   45 </span>    std<span class="hl opt">::</span>cin<span class="hl opt">.</span><span class="hl kwd">get</span><span class="hl opt">();</span>
+<span class="hl lin">   46 </span>
+<span class="hl lin">   47 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">stop</span><span class="hl opt">();</span>
+<span class="hl lin">   48 </span>
+<span class="hl lin">   49 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">4</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">   50 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   51 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">].</span><span class="hl kwd">join</span><span class="hl opt">();</span>
+<span class="hl lin">   52 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   53 </span>
+<span class="hl lin">   54 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   55 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>[140038305171264] Press [return] to exit.
+<span class="hl lin">    2 </span>[140038288406272] Thread Start
+<span class="hl lin">    3 </span>[140038271620864] Thread Start
+<span class="hl lin">    4 </span>[140038263228160] Thread Start
+<span class="hl lin">    5 </span>[140038280013568] Thread Start
+<span class="hl lin">    6 </span>
+<span class="hl lin">    7 </span>[140038288406272] Thread Finish
+<span class="hl lin">    8 </span>[140038271620864] Thread Finish
+<span class="hl lin">    9 </span>[140038263228160] Thread Finish
+<span class="hl lin">   10 </span>[140038280013568] Thread Finish
+</pre>
+
+It is important to understand the basics of the mutex object as well. If we lock once, we have to unlock as soon as it is done. We
+cannot recursively lock with this specific type of mutex, although there are other types that allow that. If we do, the thread will
+deadlock which is something we never want to happen. A lot of the benefits of concurrency are reduced when we have to wait on the
+global output lock, but for the sake of having correct multi-threaded code to work from, it is a must for now. Eventually, we will
+want to implement our own custom logging scheme that avoids such issues, but we can cover that issue later.
+<br />
+<br />
+All of the prerequisites have been covered now. We will make use of the std::bind library a lot in the future so be sure the
+concepts are comfortable before continuing on. For more interesting reading, check out <a rel="nofollow external" title=
+"External link" href="http://www.informit.com/articles/article.aspx?p=412354">How the Boost Bind Library Can Improve Your C++
+Programs</a> and <a rel="nofollow external" title="External link" href="http://www.codeproject.com/KB/cpp/fastdelegate2.aspx">Fast
+C++ Delegate: Boost.Function 'drop-in' replacement and multicast</a>. std::bind certainly provides a great deal of flexibility,
+but at a cost the user should be aware of before using in production code.
+<br />
+<div>
+<hr>
+<div class="nav">
+<a accesskey="p" href="pg2.html"><img src="prev.png" alt="Prev"></a><a accesskey="u" href="pg1.html"><img src="up.png" alt="Up"></a><a accesskey="h" href="pg1.html"><img src="home.png" alt="Home"></a><a accesskey="n" href="pg4.html"><img src="next.png" alt="Next"></a>
+</div>
+</div>
+</div>
+</body>
+</html>

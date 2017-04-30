@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Timers</title>
+<link rel="stylesheet" type="text/css" href="basic.css">
+</head>
+<body>
+<div class="nav">
+<a href="pg6.html"><img src="prev.png" alt="Prev"></a><a href="pg1.html"><img src="up.png" alt="Up"></a><a href="pg1.html"><img src="home.png" alt="Home"></a><a href="pg8.html"><img src="next.png" alt="Next"></a>
+</div>
+<h1 class="ipsType_pagetitle">A guide to getting started with asio</h1>
+<div class="desc">
+Posted by <strong><a title="" href="http://www.gamedev.net/user/64367-drew_benton/" class=
+"url fn name ___hover___member _hoversetup" id="anonymous_element_3" name=
+"anonymous_element_3"><span>Drew_Benton</span></a></strong>, 31 January 2011 ~ 190,508 views
+</div>
+<br class="clear">
+<div class="entry_content ipsType_textblock ipsPad">
+<strong class="bbc">6. Timers</strong> asio provides a <a rel="nofollow external" title="External link" class="bbc_url"
+href="http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/steady_timer.html">steady_timer</a> class that
+provides both synchronous and asynchronous interfaces. The docs page has a couple of good examples, so we can start right away with
+more advanced uses using what we already know about the asio library.
+<br>
+<br>
+In our first example, we will create a simple timer that expires in 5 seconds. There should be no surprises here as the docs go
+over this simple behavior.
+<br>
+<br>
+<strong class="bbc">Example 6a</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#define ASIO_STANDALONE</span>
+<span class="hl lin">    2 </span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    4 </span><span class="hl ppc">#include &lt;memory&gt;</span>
+<span class="hl lin">    5 </span><span class="hl ppc">#include &lt;thread&gt;</span>
+<span class="hl lin">    6 </span><span class="hl ppc">#include &lt;mutex&gt;</span>
+<span class="hl lin">    7 </span><span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl lin">    8 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    9 </span>
+<span class="hl lin">   10 </span>std<span class="hl opt">::</span>mutex global_stream_lock<span class="hl opt">;</span>
+<span class="hl lin">   11 </span>
+<span class="hl lin">   12 </span><span class="hl kwb">void</span> <span class="hl kwd">WorkerThread</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>asio<span class="hl opt">::</span>io_service<span class="hl opt">&gt;</span> io_service<span class="hl opt">)</span>
+<span class="hl lin">   13 </span><span class="hl opt">{</span>
+<span class="hl lin">   14 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   15 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Thread Start&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   16 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   17 </span>
+<span class="hl lin">   18 </span>    <span class="hl kwa">while</span> <span class="hl opt">(</span><span class="hl kwa">true</span><span class="hl opt">)</span>
+<span class="hl lin">   19 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   20 </span>        <span class="hl kwa">try</span>
+<span class="hl lin">   21 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   22 </span>            asio<span class="hl opt">::</span>error_code ec<span class="hl opt">;</span>
+<span class="hl lin">   23 </span>            io_service<span class="hl opt">-&gt;</span><span class="hl kwd">run</span><span class="hl opt">(</span>ec<span class="hl opt">);</span>
+<span class="hl lin">   24 </span>            <span class="hl kwa">if</span> <span class="hl opt">(</span>ec<span class="hl opt">)</span>
+<span class="hl lin">   25 </span>            <span class="hl opt">{</span>
+<span class="hl lin">   26 </span>                global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   27 </span>                std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Error: &quot;</span> <span class="hl opt">&lt;&lt;</span> ec <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   28 </span>                global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   29 </span>            <span class="hl opt">}</span>
+<span class="hl lin">   30 </span>            <span class="hl kwa">break</span><span class="hl opt">;</span>
+<span class="hl lin">   31 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   32 </span>        <span class="hl kwa">catch</span> <span class="hl opt">(</span>std<span class="hl opt">::</span>exception<span class="hl opt">&amp;</span> ex<span class="hl opt">)</span>
+<span class="hl lin">   33 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   34 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   35 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Exception: &quot;</span> <span class="hl opt">&lt;&lt;</span> ex<span class="hl opt">.</span><span class="hl kwd">what</span><span class="hl opt">() &lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   36 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   37 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   38 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   39 </span>
+<span class="hl lin">   40 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   41 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Thread Finish&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   42 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   43 </span><span class="hl opt">}</span>
+<span class="hl lin">   44 </span>
+<span class="hl lin">   45 </span><span class="hl kwb">void</span> <span class="hl kwd">TimerHandler</span><span class="hl opt">(</span><span class="hl kwb">const</span> asio<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">)</span>
+<span class="hl lin">   46 </span><span class="hl opt">{</span>
+<span class="hl lin">   47 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>error<span class="hl opt">)</span>
+<span class="hl lin">   48 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   49 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   50 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Error: &quot;</span> <span class="hl opt">&lt;&lt;</span> error <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   51 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   52 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   53 </span>    <span class="hl kwa">else</span>
+<span class="hl lin">   54 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   55 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   56 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] TimerHandler &quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   57 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   58 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   59 </span><span class="hl opt">}</span>
+<span class="hl lin">   60 </span>
+<span class="hl lin">   61 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span><span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span><span class="hl opt">*</span> argv<span class="hl opt">[])</span>
+<span class="hl lin">   62 </span><span class="hl opt">{</span>
+<span class="hl lin">   63 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>asio<span class="hl opt">::</span>io_service<span class="hl opt">&gt;</span> <span class="hl kwd">io_service</span><span class="hl opt">(</span><span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">);</span>
+<span class="hl lin">   64 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>work<span class="hl opt">&gt;</span> <span class="hl kwd">work</span><span class="hl opt">(</span><span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">work</span><span class="hl opt">(*</span>io_service<span class="hl opt">));</span>
+<span class="hl lin">   65 </span>
+<span class="hl lin">   66 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   67 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Press [return] to exit.&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   68 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   69 </span>
+<span class="hl lin">   70 </span>    std<span class="hl opt">::</span>thread worker_threads<span class="hl opt">[</span><span class="hl num">2</span><span class="hl opt">];</span>
+<span class="hl lin">   71 </span>    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">2</span><span class="hl opt">; ++</span>x<span class="hl opt">)</span>
+<span class="hl lin">   72 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   73 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">] =</span> std<span class="hl opt">::</span><span class="hl kwd">thread</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>WorkerThread<span class="hl opt">,</span> io_service<span class="hl opt">));</span>
+<span class="hl lin">   74 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   75 </span>
+<span class="hl lin">   76 </span>    asio<span class="hl opt">::</span>steady_timer <span class="hl kwd">timer</span><span class="hl opt">(*</span>io_service<span class="hl opt">);</span>
+<span class="hl lin">   77 </span>    timer<span class="hl opt">.</span><span class="hl kwd">expires_from_now</span><span class="hl opt">(</span>std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">seconds</span><span class="hl opt">(</span><span class="hl num">5</span><span class="hl opt">));</span>
+<span class="hl lin">   78 </span>    timer<span class="hl opt">.</span><span class="hl kwd">async_wait</span><span class="hl opt">(</span>TimerHandler<span class="hl opt">);</span>
+<span class="hl lin">   79 </span>
+<span class="hl lin">   80 </span>    std<span class="hl opt">::</span>cin<span class="hl opt">.</span><span class="hl kwd">get</span><span class="hl opt">();</span>
+<span class="hl lin">   81 </span>
+<span class="hl lin">   82 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">stop</span><span class="hl opt">();</span>
+<span class="hl lin">   83 </span>
+<span class="hl lin">   84 </span>    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">2</span><span class="hl opt">; ++</span>x<span class="hl opt">)</span>
+<span class="hl lin">   85 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   86 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">].</span><span class="hl kwd">join</span><span class="hl opt">();</span>
+<span class="hl lin">   87 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   88 </span>
+<span class="hl lin">   89 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   90 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>[140590610962240] Press [return] to exit.
+<span class="hl lin">    2 </span>[140590594197248] Thread Start
+<span class="hl lin">    3 </span>[140590585804544] Thread Start
+<span class="hl lin">    4 </span>
+<span class="hl lin">    5 </span>[140590594197248] Thread Finish
+<span class="hl lin">    6 </span>[140590585804544] Thread Finish
+</pre>
+
+What if we want a recurring timer? We could have the timer object global, but that might introduce some issues down the line as
+shared objects are not thread safe. This is where std::bind comes to rescue once again! By making a shared_ptr to the timer
+object, we can use std::bind and pass the timer to its own handler so we can keep it recurring. Here is that example.
+<br>
+<br>
+<strong class="bbc">Example 6b</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#define ASIO_STANDALONE</span>
+<span class="hl lin">    2 </span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    4 </span><span class="hl ppc">#include &lt;memory&gt;</span>
+<span class="hl lin">    5 </span><span class="hl ppc">#include &lt;thread&gt;</span>
+<span class="hl lin">    6 </span><span class="hl ppc">#include &lt;mutex&gt;</span>
+<span class="hl lin">    7 </span><span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl lin">    8 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    9 </span>
+<span class="hl lin">   10 </span><span class="hl kwa">using namespace</span> std<span class="hl opt">::</span>placeholders<span class="hl opt">;</span> <span class="hl slc">// adds _1, _2, ...</span>
+<span class="hl lin">   11 </span>std<span class="hl opt">::</span>mutex global_stream_lock<span class="hl opt">;</span>
+<span class="hl lin">   12 </span>
+<span class="hl lin">   13 </span><span class="hl kwb">void</span> <span class="hl kwd">WorkerThread</span><span class="hl opt">(</span> std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service <span class="hl opt">&gt;</span> io_service <span class="hl opt">)</span>
+<span class="hl lin">   14 </span><span class="hl opt">{</span>
+<span class="hl lin">   15 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   16 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   17 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Thread Start&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   18 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   19 </span>
+<span class="hl lin">   20 </span>    <span class="hl kwa">while</span><span class="hl opt">(</span> <span class="hl kwa">true</span> <span class="hl opt">)</span>
+<span class="hl lin">   21 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   22 </span>        <span class="hl kwa">try</span>
+<span class="hl lin">   23 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   24 </span>            asio<span class="hl opt">::</span>error_code ec<span class="hl opt">;</span>
+<span class="hl lin">   25 </span>            io_service<span class="hl opt">-&gt;</span><span class="hl kwd">run</span><span class="hl opt">(</span> ec <span class="hl opt">);</span>
+<span class="hl lin">   26 </span>            <span class="hl kwa">if</span><span class="hl opt">(</span> ec <span class="hl opt">)</span>
+<span class="hl lin">   27 </span>            <span class="hl opt">{</span>
+<span class="hl lin">   28 </span>                global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   29 </span>                std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   30 </span>                    <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Error: &quot;</span> <span class="hl opt">&lt;&lt;</span> ec <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   31 </span>                global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   32 </span>            <span class="hl opt">}</span>
+<span class="hl lin">   33 </span>            <span class="hl kwa">break</span><span class="hl opt">;</span>
+<span class="hl lin">   34 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   35 </span>        <span class="hl kwa">catch</span><span class="hl opt">(</span> std<span class="hl opt">::</span>exception <span class="hl opt">&amp;</span> ex <span class="hl opt">)</span>
+<span class="hl lin">   36 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   37 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   38 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   39 </span>                <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Exception: &quot;</span> <span class="hl opt">&lt;&lt;</span> ex<span class="hl opt">.</span><span class="hl kwd">what</span><span class="hl opt">() &lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   40 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   41 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   42 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   43 </span>
+<span class="hl lin">   44 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   45 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   46 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Thread Finish&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   47 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   48 </span><span class="hl opt">}</span>
+<span class="hl lin">   49 </span>
+<span class="hl lin">   50 </span><span class="hl kwb">void</span> <span class="hl kwd">TimerHandler</span><span class="hl opt">(</span>
+<span class="hl lin">   51 </span>                  <span class="hl kwb">const</span> asio<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">,</span>
+<span class="hl lin">   52 </span>                  std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>steady_timer <span class="hl opt">&gt;</span> timer
+<span class="hl lin">   53 </span>                  <span class="hl opt">)</span>
+<span class="hl lin">   54 </span><span class="hl opt">{</span>
+<span class="hl lin">   55 </span>    <span class="hl kwa">if</span><span class="hl opt">(</span> error <span class="hl opt">)</span>
+<span class="hl lin">   56 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   57 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   58 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   59 </span>            <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Error: &quot;</span> <span class="hl opt">&lt;&lt;</span> error <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   60 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   61 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   62 </span>    <span class="hl kwa">else</span>
+<span class="hl lin">   63 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   64 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   65 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   66 </span>            <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] TimerHandler &quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   67 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   68 </span>
+<span class="hl lin">   69 </span>        timer<span class="hl opt">-&gt;</span><span class="hl kwd">expires_from_now</span><span class="hl opt">(</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">seconds</span><span class="hl opt">(</span> <span class="hl num">5</span> <span class="hl opt">) );</span>
+<span class="hl lin">   70 </span>        timer<span class="hl opt">-&gt;</span><span class="hl kwd">async_wait</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>TimerHandler<span class="hl opt">,</span> _1<span class="hl opt">,</span> timer <span class="hl opt">) );</span>
+<span class="hl lin">   71 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   72 </span><span class="hl opt">}</span>
+<span class="hl lin">   73 </span>
+<span class="hl lin">   74 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class="hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">   75 </span><span class="hl opt">{</span>
+<span class="hl lin">   76 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service <span class="hl opt">&gt;</span> <span class="hl kwd">io_service</span><span class="hl opt">(</span>
+<span class="hl lin">   77 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service
+<span class="hl lin">   78 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   79 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>work <span class="hl opt">&gt;</span> <span class="hl kwd">work</span><span class="hl opt">(</span>
+<span class="hl lin">   80 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">work</span><span class="hl opt">( *</span>io_service <span class="hl opt">)</span>
+<span class="hl lin">   81 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   82 </span>
+<span class="hl lin">   83 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   84 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   85 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Press [return] to exit.&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   86 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   87 </span>
+<span class="hl lin">   88 </span>    std<span class="hl opt">::</span>thread worker_threads<span class="hl opt">[</span><span class="hl num">2</span><span class="hl opt">];</span>
+<span class="hl lin">   89 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">2</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">   90 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   91 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">] =</span> std<span class="hl opt">::</span><span class="hl kwd">thread</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>WorkerThread<span class="hl opt">,</span> io_service <span class="hl opt">) );</span>
+<span class="hl lin">   92 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   93 </span>
+<span class="hl lin">   94 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>steady_timer <span class="hl opt">&gt;</span> <span class="hl kwd">timer</span><span class="hl opt">(</span>
+<span class="hl lin">   95 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span><span class="hl kwd">steady_timer</span><span class="hl opt">( *</span>io_service <span class="hl opt">)</span>
+<span class="hl lin">   96 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   97 </span>    timer<span class="hl opt">-&gt;</span><span class="hl kwd">expires_from_now</span><span class="hl opt">(</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">seconds</span><span class="hl opt">(</span> <span class="hl num">5</span> <span class="hl opt">) );</span>
+<span class="hl lin">   98 </span>    timer<span class="hl opt">-&gt;</span><span class="hl kwd">async_wait</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>TimerHandler<span class="hl opt">,</span> _1<span class="hl opt">,</span> timer <span class="hl opt">) );</span>
+<span class="hl lin">   99 </span>
+<span class="hl lin">  100 </span>    std<span class="hl opt">::</span>cin<span class="hl opt">.</span><span class="hl kwd">get</span><span class="hl opt">();</span>
+<span class="hl lin">  101 </span>
+<span class="hl lin">  102 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">stop</span><span class="hl opt">();</span>
+<span class="hl lin">  103 </span>
+<span class="hl lin">  104 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">2</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">  105 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  106 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">].</span><span class="hl kwd">join</span><span class="hl opt">();</span>
+<span class="hl lin">  107 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  108 </span>
+<span class="hl lin">  109 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">  110 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>[139630116050752] Press [return] to exit.
+<span class="hl lin">    2 </span>[139630098814720] Thread Start
+<span class="hl lin">    3 </span>[139630090422016] Thread Start
+<span class="hl lin">    4 </span>[139630098814720] TimerHandler
+<span class="hl lin">    5 </span>[139630090422016] TimerHandler
+<span class="hl lin">    6 </span>
+<span class="hl lin">    7 </span>[139630090422016] Thread Finish
+<span class="hl lin">    8 </span>[139630098814720] Thread Finish
+</pre>
+
+As we can see, std::bind allows us to do some pretty nifty things. The _1 parameter is an argument place holder. Since the
+TimerHandler function requires one parameter for the callback, we must reference this in the bind call. All in all, the _1 means
+"the first parameter, which will be supplied later". <a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://orionedwards.blogspot.com/2006/09/function-pointers-in-cc-and-boostbind.html">This blog</a> has a nice post explaining this as
+well.
+<br>
+<br>
+After running the program, we will see a timer that fires every 5 seconds. Great! Now we know how to make recurring timers in
+addition to the fire once type. Furthermore, we can utilize std::bind to pass more parameters to the handler as needed. However,
+our timers will execute asynchronously so if we have more than one worker thread, it is possible that we execute a timer in one
+thread while we execute another event in another. Let us assume the timer handler and the work handler use the same shared object
+so we now have a non-thread safe design. How can we ensure a timer does not execute concurrently with a work handler?
+<br>
+<br>
+The answer is with our friend strand. By using a strand object, we can post work through the strand as well as wrap the timer
+handler to be dispatched through it. As a result, we will get our serialized output and will not have to explicitly synchronize
+access to our shared object. Here is an example showing that.
+<br>
+<br>
+<strong class="bbc">Example 6c</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#define ASIO_STANDALONE</span>
+<span class="hl lin">    2 </span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    4 </span><span class="hl ppc">#include &lt;memory&gt;</span>
+<span class="hl lin">    5 </span><span class="hl ppc">#include &lt;thread&gt;</span>
+<span class="hl lin">    6 </span><span class="hl ppc">#include &lt;mutex&gt;</span>
+<span class="hl lin">    7 </span><span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl lin">    8 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    9 </span><span class="hl ppc">#include &lt;chrono&gt;</span>
+<span class="hl lin">   10 </span>
+<span class="hl lin">   11 </span><span class="hl kwa">using namespace</span> std<span class="hl opt">::</span>placeholders<span class="hl opt">;</span> <span class="hl slc">// adds _1, _2, ...</span>
+<span class="hl lin">   12 </span>std<span class="hl opt">::</span>mutex global_stream_lock<span class="hl opt">;</span>
+<span class="hl lin">   13 </span>
+<span class="hl lin">   14 </span><span class="hl kwb">void</span> <span class="hl kwd">WorkerThread</span><span class="hl opt">(</span> std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service <span class="hl opt">&gt;</span> io_service <span class="hl opt">)</span>
+<span class="hl lin">   15 </span><span class="hl opt">{</span>
+<span class="hl lin">   16 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   17 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   18 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Thread Start&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   19 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   20 </span>
+<span class="hl lin">   21 </span>    <span class="hl kwa">while</span><span class="hl opt">(</span> <span class="hl kwa">true</span> <span class="hl opt">)</span>
+<span class="hl lin">   22 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   23 </span>        <span class="hl kwa">try</span>
+<span class="hl lin">   24 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   25 </span>            asio<span class="hl opt">::</span>error_code ec<span class="hl opt">;</span>
+<span class="hl lin">   26 </span>            io_service<span class="hl opt">-&gt;</span><span class="hl kwd">run</span><span class="hl opt">(</span> ec <span class="hl opt">);</span>
+<span class="hl lin">   27 </span>            <span class="hl kwa">if</span><span class="hl opt">(</span> ec <span class="hl opt">)</span>
+<span class="hl lin">   28 </span>            <span class="hl opt">{</span>
+<span class="hl lin">   29 </span>                global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   30 </span>                std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   31 </span>                    <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Error: &quot;</span> <span class="hl opt">&lt;&lt;</span> ec <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   32 </span>                global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   33 </span>            <span class="hl opt">}</span>
+<span class="hl lin">   34 </span>            <span class="hl kwa">break</span><span class="hl opt">;</span>
+<span class="hl lin">   35 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   36 </span>        <span class="hl kwa">catch</span><span class="hl opt">(</span> std<span class="hl opt">::</span>exception <span class="hl opt">&amp;</span> ex <span class="hl opt">)</span>
+<span class="hl lin">   37 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   38 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   39 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   40 </span>                <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Exception: &quot;</span> <span class="hl opt">&lt;&lt;</span> ex<span class="hl opt">.</span><span class="hl kwd">what</span><span class="hl opt">() &lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   41 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   42 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   43 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   44 </span>
+<span class="hl lin">   45 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   46 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   47 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Thread Finish&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   48 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   49 </span><span class="hl opt">}</span>
+<span class="hl lin">   50 </span>
+<span class="hl lin">   51 </span><span class="hl kwb">void</span> <span class="hl kwd">TimerHandler</span><span class="hl opt">(</span>
+<span class="hl lin">   52 </span>                  <span class="hl kwb">const</span> asio<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">,</span>
+<span class="hl lin">   53 </span>                  std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>steady_timer <span class="hl opt">&gt;</span> timer<span class="hl opt">,</span>
+<span class="hl lin">   54 </span>                  std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>strand <span class="hl opt">&gt;</span> strand
+<span class="hl lin">   55 </span>                  <span class="hl opt">)</span>
+<span class="hl lin">   56 </span><span class="hl opt">{</span>
+<span class="hl lin">   57 </span>    <span class="hl kwa">if</span><span class="hl opt">(</span> error <span class="hl opt">)</span>
+<span class="hl lin">   58 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   59 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   60 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   61 </span>            <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Error: &quot;</span> <span class="hl opt">&lt;&lt;</span> error <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   62 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   63 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   64 </span>    <span class="hl kwa">else</span>
+<span class="hl lin">   65 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   66 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   67 </span>            <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] TimerHandler &quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   68 </span>
+<span class="hl lin">   69 </span>        timer<span class="hl opt">-&gt;</span><span class="hl kwd">expires_from_now</span><span class="hl opt">(</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">seconds</span><span class="hl opt">(</span> <span class="hl num">1</span> <span class="hl opt">) );</span>
+<span class="hl lin">   70 </span>        timer<span class="hl opt">-&gt;</span><span class="hl kwd">async_wait</span><span class="hl opt">(</span>
+<span class="hl lin">   71 </span>            strand<span class="hl opt">-&gt;</span><span class="hl kwd">wrap</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>TimerHandler<span class="hl opt">,</span> _1<span class="hl opt">,</span> timer<span class="hl opt">,</span> strand <span class="hl opt">) )</span>
+<span class="hl lin">   72 </span>            <span class="hl opt">);</span>
+<span class="hl lin">   73 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   74 </span><span class="hl opt">}</span>
+<span class="hl lin">   75 </span>
+<span class="hl lin">   76 </span><span class="hl kwb">void</span> <span class="hl kwd">PrintNum</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">)</span>
+<span class="hl lin">   77 </span><span class="hl opt">{</span>
+<span class="hl lin">   78 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   79 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] x: &quot;</span> <span class="hl opt">&lt;&lt;</span> x <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   80 </span>    std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">sleep_for</span><span class="hl opt">(</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">milliseconds</span><span class="hl opt">(</span> <span class="hl num">1000</span> <span class="hl opt">) );</span>
+<span class="hl lin">   81 </span><span class="hl opt">}</span>
+<span class="hl lin">   82 </span>
+<span class="hl lin">   83 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class="hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">   84 </span><span class="hl opt">{</span>
+<span class="hl lin">   85 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service <span class="hl opt">&gt;</span> <span class="hl kwd">io_service</span><span class="hl opt">(</span>
+<span class="hl lin">   86 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service
+<span class="hl lin">   87 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   88 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>work <span class="hl opt">&gt;</span> <span class="hl kwd">work</span><span class="hl opt">(</span>
+<span class="hl lin">   89 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">work</span><span class="hl opt">( *</span>io_service <span class="hl opt">)</span>
+<span class="hl lin">   90 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   91 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>strand <span class="hl opt">&gt;</span> <span class="hl kwd">strand</span><span class="hl opt">(</span>
+<span class="hl lin">   92 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">strand</span><span class="hl opt">( *</span>io_service <span class="hl opt">)</span>
+<span class="hl lin">   93 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   94 </span>
+<span class="hl lin">   95 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   96 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   97 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Press [return] to exit.&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   98 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   99 </span>
+<span class="hl lin">  100 </span>    std<span class="hl opt">::</span>thread worker_threads<span class="hl opt">[</span><span class="hl num">2</span><span class="hl opt">];</span>
+<span class="hl lin">  101 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">2</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">  102 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  103 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">] =</span> std<span class="hl opt">::</span><span class="hl kwd">thread</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>WorkerThread<span class="hl opt">,</span> io_service <span class="hl opt">) );</span>
+<span class="hl lin">  104 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  105 </span>
+<span class="hl lin">  106 </span>    std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">sleep_for</span><span class="hl opt">(</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">seconds</span><span class="hl opt">(</span> <span class="hl num">1</span> <span class="hl opt">) );</span>
+<span class="hl lin">  107 </span>
+<span class="hl lin">  108 </span>    strand<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">1</span> <span class="hl opt">) );</span>
+<span class="hl lin">  109 </span>    strand<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">2</span> <span class="hl opt">) );</span>
+<span class="hl lin">  110 </span>    strand<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">3</span> <span class="hl opt">) );</span>
+<span class="hl lin">  111 </span>    strand<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">4</span> <span class="hl opt">) );</span>
+<span class="hl lin">  112 </span>    strand<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">5</span> <span class="hl opt">) );</span>
+<span class="hl lin">  113 </span>
+<span class="hl lin">  114 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>steady_timer <span class="hl opt">&gt;</span> <span class="hl kwd">timer</span><span class="hl opt">(</span>
+<span class="hl lin">  115 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span><span class="hl kwd">steady_timer</span><span class="hl opt">( *</span>io_service <span class="hl opt">)</span>
+<span class="hl lin">  116 </span>        <span class="hl opt">);</span>
+<span class="hl lin">  117 </span>    timer<span class="hl opt">-&gt;</span><span class="hl kwd">expires_from_now</span><span class="hl opt">(</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">seconds</span><span class="hl opt">(</span> <span class="hl num">1</span> <span class="hl opt">) );</span>
+<span class="hl lin">  118 </span>    timer<span class="hl opt">-&gt;</span><span class="hl kwd">async_wait</span><span class="hl opt">(</span>
+<span class="hl lin">  119 </span>        strand<span class="hl opt">-&gt;</span><span class="hl kwd">wrap</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>TimerHandler<span class="hl opt">,</span> _1<span class="hl opt">,</span> timer<span class="hl opt">,</span> strand <span class="hl opt">) )</span>
+<span class="hl lin">  120 </span>        <span class="hl opt">);</span>
+<span class="hl lin">  121 </span>
+<span class="hl lin">  122 </span>    std<span class="hl opt">::</span>cin<span class="hl opt">.</span><span class="hl kwd">get</span><span class="hl opt">();</span>
+<span class="hl lin">  123 </span>
+<span class="hl lin">  124 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">stop</span><span class="hl opt">();</span>
+<span class="hl lin">  125 </span>
+<span class="hl lin">  126 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">2</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">  127 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  128 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">].</span><span class="hl kwd">join</span><span class="hl opt">();</span>
+<span class="hl lin">  129 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  130 </span>
+<span class="hl lin">  131 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">  132 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>[140114219915072] Press [return] to exit.
+<span class="hl lin">    2 </span>[140114202679040] Thread Start
+<span class="hl lin">    3 </span>[140114194286336] Thread Start
+<span class="hl lin">    4 </span>[140114202679040] x: 1
+<span class="hl lin">    5 </span>[140114202679040] x: 2
+<span class="hl lin">    6 </span>[140114202679040] x: 3
+<span class="hl lin">    7 </span>[140114202679040] x: 4
+<span class="hl lin">    8 </span>[140114202679040] x: 5
+<span class="hl lin">    9 </span>[140114202679040] TimerHandler
+<span class="hl lin">   10 </span>[140114194286336] TimerHandler
+<span class="hl lin">   11 </span>[140114202679040] TimerHandler
+<span class="hl lin">   12 </span>[140114194286336] TimerHandler
+<span class="hl lin">   13 </span>[140114202679040] TimerHandler
+<span class="hl lin">   14 </span>[140114194286336] TimerHandler
+<span class="hl lin">   15 </span>[140114202679040] TimerHandler
+<span class="hl lin">   16 </span>[140114202679040] Thread Finish
+<span class="hl lin">   17 </span>[140114194286336] Thread Finish
+</pre>
+It is vital to note how we must wrap the timer handler through the strand everywhere and not just the first time. If we forget
+that, the timer would no longer execute through the strand object and bugs can result. Running the program, we should see our first
+five work objects execute and then the timer thread. Since everything is serialized, the work objects have to complete in order
+first before the timer event fires. If we were to remove the strand wrap calls, then we would see the timer executing normally but
+the output would be messed up since we did not lock the std::cout object, and thus that shows us we would have multi-threaded bugs!
+For more useful information regarding the timers, check out the <a rel="nofollow external" title="External link" class="bbc_url"
+href="http://blog.think-async.com/2007/08/time-travel.html">Time Travel</a> article the asio author has written.
+<br>
+<br>
+At this point, we can see how bind, strand, and shared_ptr are invaluable components when paired with the asio library in
+giving us the power and flexibility we need to program with. We will be making use of all of these features in covering the next
+aspect of the asio library, which is the networking system.
+<br>
+<hr>
+<div class="nav">
+<a accesskey="p" href="pg6.html"><img src="prev.png" alt="Prev"></a><a accesskey="u" href="pg1.html"><img src="up.png" alt="Up"></a><a accesskey="h" href="pg1.html"><img src="home.png" alt="Home"></a><a accesskey="n" href="pg8.html"><img src="next.png" alt="Next"></a>
+</div>
+</div>
+</body>
+</html>

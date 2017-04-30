@@ -1,0 +1,24 @@
+#<Limit GET POST>
+#The next line modified by DenyIP
+#order allow,deny
+#The next line modified by DenyIP
+#deny from all
+#allow from all
+#</Limit>
+#<Limit PUT DELETE>
+#order deny,allow
+#deny from all
+#</Limit>
+AuthName frog.net.za
+#ServerName frog.net.za
+#IndexIgnore .htaccess */.??* *~ *# */HEADER* */README* */_vti*
+
+#<Files 403.shtml>
+#order allow,deny
+#allow from all
+#</Files>
+
+deny from 89.149.209.136
+#Options -Indexes
+
+DirectoryIndex index.html index.php

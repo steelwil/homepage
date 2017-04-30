@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Serve-Hosting | South Africa Web Hosting</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le styles -->
+    <link href="http://static.serv.co.za/stylesheet/bootstrap.min.css" rel="stylesheet">
+    <link href="http://static.serv.co.za/stylesheet/bootstrap-responsive.min.css" rel="stylesheet">
+    <link href="http://static.serv.co.za/stylesheet/styles.css" rel="stylesheet">
+    <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400,600,700,900' rel='stylesheet' type='text/css'>
+
+
+	<!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+	<!--[if IE]>
+	<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+
+
+  </head>
+
+  <body>
+
+	<header>
+
+		<nav>
+			<div class="container">
+				<a href="https://www.serv.co.za" class="brand"><span style="color: #2b73a0;">Serve-</span><span style="color: #eb9531;">Hosting</span></a>
+			</div>
+		</nav>
+
+		<section class="container">
+			<h1>Seems like this website still need some content</h1>
+			<p>Need some help getting started? Visit our <a href="https://www.serv.co.za/helpdesk/index.php?/Knowledgebase/List">Knowledgebase</a> for how to guides on <a href="https://www.serv.co.za/helpdesk/index.php?/Knowledgebase/List/Index/9/using-cpanel">cPanel</a> and <a href="https://www.serv.co.za/helpdesk/index.php?/Knowledgebase/Article/View/42/3/creating-an-ftp-account">FTP</a> to help get you started.</p>
+		</section>
+
+	</header>
+
+	<article>
+		<div class="container">
+			<ul class="row-fluid">
+				<li class="span6"> 
+					<div class="box">
+						<h3>Web Hosting</h3>
+						<p>
+							Looking for full featured web hosting starting from only <strong>R29.99/pm</strong>?<br /><br />
+							<a class="btn" href="https://www.serv.co.za/shared-hosting/">View our hosting plans</a>
+						</p>
+					</div>
+				</li>
+				<li class="span6"> 
+					<div class="box">
+						<h3>Domain Registration</h3>
+						<p>
+							Looking for a domain of your own? co.za, com, net, org.<br /><br />
+							<a class="btn" href="http://www.serv.co.za/domains/">Do a quick search</a>
+						</p>
+					</div>
+				</li>
+
+			</ul>
+		</div>
+	</article>
+
+	<footer>
+
+	</footer>
+
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="http://static.serv.co.za/javascript/bootstrap.min.js"></script>
+
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-242125-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+  </body>
+</html>

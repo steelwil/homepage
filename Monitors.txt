@@ -1,0 +1,41 @@
+Put in "Monitor" Section
+
+Acer H233H 23"
+=============
+1920*1080 @ 60Hz
+HorizSync   54.2 - 83.8
+VertRefresh 49 - 75
+
+Mecer 19"
+=========
+1600*1200 @ 60Hz
+HorizSync   30 - 96
+VertRefresh 50 - 160
+Video Dot Rate 200MHz
+Modeline "1600x1200@60" 176.70 1600 1632 2296 2328 1200 1224 1236 1261
+
+
+LG StudioWorks 700S 17"
+=======================
+1280 x 1024 @ 60Hz
+HorizSync   30 - 70
+VertRefresh 50 - 160
+
+Rectron VM7ERDA-S12 17" (Tatung VM7E)
+=======================
+Modeline "1280x1024@60" 114.98 1280 1312 1744 1776 1024 1045 1055 1076
+Modeline "1280x1024@50" 90.89 1280 1312 1656 1688 1024 1045 1054 1076
+HorizSync 30.0 – 70.0
+VertRefresh 50.0 – 130.0
+
+WEN JS177E 17"
+==============
+Modeline "1280x1024@60" 114.98 1280 1312 1744 1776 1024 1045 1055 1076
+Modeline "1280x1024@50" 90.89 1280 1312 1656 1688 1024 1045 1054 1076
+HorizSync 30.0 – 70.0
+VertRefresh 50.0 – 130.0
+
+
+http://xtiming.sourceforge.net/cgi-bin/xtiming.pl
+
+

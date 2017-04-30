@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>The road ahead</title>
+<link rel="stylesheet" type="text/css" href="basic.css">
+</head>
+<body>
+<div class="nav">
+<a href="pg10.html"><img src="prev.png" alt="Prev"></a><a href="pg1.html"><img src="up.png" alt="Up"></a><a href="pg1.html"><img src="home.png" alt="Home"></a><a href="pg1.html"><img src="next.png" alt="Next"></a>
+</div>
+<h1 class="ipsType_page1_60_0">A guide to getting started with asio</h1>
+<div class="desc">
+Posted by <strong><a href="http://www.gamedev.net/user/64367-drew_benton/" class="url fn name ___hover___member _hoversetup" id=
+"anonymous_element_3" name="anonymous_element_3"><span>Drew_Benton</span></a></strong>, 31 January 2011 ~ 190,508 views
+</div>
+<br class="clear">
+<div class="entry_content ipsType_textblock ipsPad">
+<strong class="bbc">10. The road ahead</strong>
+<br>
+<br>
+There are three basic things that need to happen now. We need to:
+<ol>
+<li>Continue to learn the ins and outs of the boost and asio libraries to further extend our programs.</li>
+<li>Write, test, and deploy a reusable wrapper for the base asio networking stuff so we do not have to keep rewriting it.</li>
+<li>Write our own networking library on top of the wrapper that handles the protocol specific tasks at hand.</li>
+</ol>
+
+In doing so, we will be able to finally harness the full potential of the asio library. There are still a lot of aspects to
+the asio library that has not been covered in this guide. That is because this guide was written to be a quick start guide.
+While this guide is certainly not short, it just goes to show how much is needed to really get into the asio library.
+Hopefully, this guide will provide a good direction to learn the basics of asio from. The biggest issue I have seen when
+trying to learn asio is finding practical resources that really cover a lot of the bases of the library so the end user
+knows what they need to look into to get the most out of the library.
+<br>
+<br>
+UDP is not quite as involved as TCP since it is connection-less. However, it is up to the programmer to implement their own layer
+on top of UDP specific to their application. As a consequence, no UDP topics are being covered at this time as using the UDP
+specific API is pretty straightforward after having looked at the TCP API. Most users might even consider using an existing UDP
+library as well. A lot of people do write their own TCP wrappers and then libraries while not many of them end up writing their own
+UDP simply based on their needs due to the nature of the protocol. Depending on one's application and networking experience, the
+decision will vary.
+<br>
+<br>
+As part of goal #3, we will also want to write a custom "packet" class to use. Such a class was not included in these examples
+simply because of the added complexity. Ideally though, we want to have something reusable to build upon and reuse, but depending
+on the application this might not be possible. For example, larger scale applications might need code that uses custom memory
+allocation interfaces and as a result any code written before might be incompatible. These are important things to keep in mind
+when doing network programming!
+<br>
+<br>
+Finally, we have to consider is asio right for us. For some applications, it might be over kill. For others, we might decide
+we want to use another library. I myself have come to like the design of asio and willing to accept the overhead incurred
+through std::bind for the flexibility and power the library provides. While getting the "perfect" code takes a lot of work and
+testing, it is still doable. However, some other libraries might provide more features and an API set suitable for a task.
+<br>
+<br>
+This guide to getting started with asio is now concluded. Future guides will be written to cover even more topics. Please
+feel free to leave any feedback, corrections, or problems below.
+<br>
+<hr>
+<div class="nav">
+<a accesskey="p" href="pg10.html"><img src="prev.png" alt="Prev"></a><a accesskey="u" href="pg1.html"><img src="up.png" alt="Up"></a><a accesskey="h" href="pg1.html"><img src="home.png" alt="Home"></a><a accesskey="n" href="pg1.html"><img src="next.png" alt="Next"></a>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,382 @@
+﻿2017-04-29 Copied from version 2.0.2 of Free42s http://thomasokken.com/free42/
+
+FLOAT  converts hex values as an IEEE 754-1985 floating number
+HEX    converts an IEEE 754-1985 floating number to the hex value
+TMV    The original HP TMV program as published by HP
+TMVG   Similar to TMV but adds a yearly growth to the payments
+SAVE   Calculates saving with daily interest accumulation
+ROOTS  Finds the roots of a 2nd degree polynomial function
+R3     Finds the roots of a 3rd degree polynomial function
+PART   Finds parts of
+
+--------------------------------------------------------------------------------
+This program converts a HEX representation of a IEEE 754 floating number to a floating number.
+3F9E0652 = 1.234567880630493
+
+00 { 72-Byte Prgm }
+01▸LBL "FLOAT"
+02 DECM
+03 STO 00
+04 2
+05 31
+06 Y↑X
+07 ÷
+08 IP
+09 -1
+10 X<>Y
+11 Y↑X
+12 RCL 00
+13 2
+14 31
+15 Y↑X
+16 1
+17 -
+18 AND
+19 8388608
+20 ÷
+21 IP
+22 127
+23 -
+24 2
+25 X<>Y
+26 Y↑X
+27 ×
+28 RCL 00
+29 8388608
+30 ÷
+31 FP
+32 1
+33 +
+34 ×
+35 END
+
+--------------------------------------------------------------------------------
+This program converts a floating number to the HEX value
+Note the floating number must be positive
+Some presision is lost due to the nature of the standard
+
+Test Case:
+1.23456789 = 3F9E0652 = 1.234567880630493
+3.141592653589793 = 40490FDB = 3.141592741012573
+
+Thanks Werner Huysegoms for improvements.
+
+00 { 54-Byte Prgm }
+01▸LBL "HEX"
+02 ENTER
+03 LOG
+04 2
+05 LOG
+06 ÷
+07 0
+08 X>Y?
+09 SIGN
+10 -
+11 IP
+12 2
+13 X<>Y
+14 Y↑X
+15 STO÷ ST Y
+16 R↓
+17 127
+18 LASTX
+19 +
+20 X<>Y
+21 FP
+22 8388608
+23 STO× ST Z
+24 ×
+25 0.5
+26 +
+27 IP
+28 +
+29 HEXM
+30 END
+
+--------------------------------------------------------------------------------
+The original HP published TVM program
+
+NOTE: Use this program with SOLVER
+
+For payments at the beginnin
+
+Test case: N = 36, I%YR = 10.5, PV = 5750, FV = 0, PMT = -186.8890501519492
+
+00 { 80-Byte Prgm }
+01▸LBL "TVM"
+02 MVAR "N"
+03 MVAR "I%YR"
+04 MVAR "PV"
+05 MVAR "PMT"
+06 MVAR "FV"
+07 1
+08 ENTER
+09 ENTER
+10 RCL "I%YR"
+11 %
+12 12
+13 ÷
+14 STO ST T         ! STO .
+15 FC? 00
+16 CLX
+17 +
+18 R↓
+19 +
+20 RCL "N"
+21 +/-
+22 Y↑X
+23 1
+24 X<>Y
+25 -
+26 LASTX
+27 RCL× "FV"
+28 R↓
+29 X<>Y
+30 ÷
+31 ×
+32 RCL× "PMT"
+33 +
+34 RCL+ "PV"
+35 END
+
+--------------------------------------------------------------------------------
+This program does not work there is a typo somewhere and I cannot find the original formula
+I may have to derive it from first principals again.
+
+This program calculates an investment with fixed monthly instalments
+The instalments are increases once a year by %GR
+It calculates based on compounded interest per month.
+
+NOTE: Use this program with SOLVER
+
+00 { 128-Byte Prgm }
+01▸LBL "TMVG"
+02 MVAR "YRS"       !Years
+03 MVAR "I%YR"      !Interest per year
+04 MVAR "%GR"       !Interest growth per year
+05 MVAR "PV"        !Present value
+06 MVAR "PMT"       !Payment
+07 MVAR "FV"        !Final Value
+08 RCL "YRS"
+09 12
+10 ×
+11 STO 06
+12 1
+13 RCL "I%YR"
+14 %
+15 12
+16 ÷
+17 +
+18 STO 08
+19 -12
+20 Y↑X
+21 STO 07
+22 1
+23 RCL "%GR"
+24 %
+25 +
+26 STO 09
+27 ×
+28 RCL "YRS"
+29 Y↑X
+30 +/-
+31 1
+32 +
+33 RCL 07
+34 1
+35 -
+36 ×
+37 1
+38 RCL 09
+39 RCL 07
+40 ×
+41 -
+42 ÷
+43 RCL× "PMT"
+44 RCL 08
+45 RCL 06
+46 Y↑X
+47 ×
+48 1
+49 RCL 08
+50 -
+51 ÷
+52 RCL 08
+53 RCL 06
+54 Y↑X
+55 RCL× "PV"
+56 ×
+57 +
+58 RCL- "FV"
+59 END
+
+--------------------------------------------------------------------------------
+This program simulates a savings account where interest is calculated
+and compounded daily
+
+NOTE: Use this program with SOLVER
+
+00 { 89-Byte Prgm }
+01 LBL "SAVE"
+02 MVAR "N"
+03 MVAR "I%YR"
+04 MVAR "PV"
+05 MVAR "PMT"
+06 MVAR "FV"
+07 RCL "I%YR"
+08 36525
+09 ÷
+10 1
+11 +
+12 30.4375
+13 Y↑X
+14 STO 00
+15 RCL "N"
+16 Y↑X
+17 RCLx "PV"
+18 1
+19 RCL 00
+20 RCL "N"
+21 Y↑X
+22 -
+23 RCLx "PMT"
+24 1
+25 RCL- 00
+26 ÷
+27 +
+28 RCL- "FV"
+29 +/-
+30 END
+
+--------------------------------------------------------------------------------
+This program finds the roots of ax² + bx + c = 0 using the formula
+          ________
+    -b ± √b² - 4ac
+x = ───────────────
+         2a
+
+00 { 57-Byte Prgm }
+01▸LBL "ROOTS"
+02 INPUT "A"
+03 2
+04 ×
+05 STO 00
+06 INPUT "B"
+07 +/-
+08 STO 01
+09 INPUT "C"
+10 2
+11 ×
+12 RCL 00
+13 ×
+14 RCL 01
+15 Y↑X
+16 X<>Y
+17 -
+18 SQRT
+19 STO "F"
+20 RCL 01
+21 X<>Y
+22 -
+23 RCL 00
+24 ÷
+25 STO "X1"
+26 RCL 01
+27 RCL "F"
+28 +
+29 RCL 00
+30 ÷
+31 RCL "X1"
+32 END
+
+--------------------------------------------------------------------------------
+This program finds the roots of ax³ + bx² + cx + d = 0
+
+NOTE: Use this program with SOLVER
+      You can also use this program with the DPLOT program
+
+00 { 38-Byte Prgm }
+01▸LBL "R3"
+02 MVAR "a"
+03 MVAR "b"
+04 MVAR "c"
+05 MVAR "d"
+06 MVAR "x"
+07 RCL "x"
+08 ENTER
+09 ENTER
+10 ENTER
+11 RCL+ "b"
+12 ×
+13 RCL+ "c"
+14 ×
+15 RCL+ "d"
+16 END
+
+--------------------------------------------------------------------------------
+This program solves for:   ax² + bx + c         x     y     z
+                          ───────────────   =  ─── + ─── + ───
+                          (S+A)(S+B)(S+C)      S+A   S+B   S+C
+
+00 { 86-Byte Prgm }
+01▸LBL "PART"
+02 INPUT "A"
+03 STO 00
+04 INPUT "B"
+05 STO 01
+06 INPUT "C"
+07 STO 02
+08 INPUT "a"
+09 STO 03
+10 INPUT "b"
+11 STO 04
+12 INPUT "c"
+13 STO 05
+14 XEQ 01      ! Execute at Lable 01
+15 STO 07
+16 RCL 00
+17 RCL 01
+18 STO 00
+19 R↓
+20 STO 01
+21 XEQ 01
+22 STO 08
+23 RCL 00
+24 RCL 02
+25 STO 00
+26 R↓
+27 STO 02
+28 XEQ 01
+29 RCL 08
+30 RCL 07
+31 STOP
+32▸LBL 01
+33 RCL 00
+34 +/-
+35 RCL× 03
+36 RCL+ 04
+37 RCL× 00
+38 +/-
+39 RCL+ 05
+40 RCL 01
+41 RCL- 00
+42 ÷
+43 RCL 02
+44 X≠0?
+45 RCL- 00
+46 X≠0?
+47 ÷
+48 X=0?
+49 R↓
+50 END
+
+
+--------------------------------------------------------------------------------
+00 { 11-Byte Prgm }
+01▸LBL "AREA"
+02 X↑2
+03 PI
+04 ×
+05 END
+
+

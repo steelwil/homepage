@@ -16,90 +16,62 @@
 
     You should have received a copy of the GNU General Public License
     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+
+
+
+
+select
+	C.gid as C_gid,
+	C.confidence as C_confidence,
+	C.page as C_page,
+	C.change as C_change,
+	C.private as C_private,
+	S.gid as S_gid,
+	S.title as S_title,
+	S.author as S_author,
+	S.pubinfo as S_pubinfo,
+	S.abbrev as S_abbrev,
+	S.change as S_change,
+	S.private as S_private,
+	RR.gid as RR_gid,
+	RR.repository_gid as RR_repository_gid,
+	RR.callno as RR_callno,
+	RR.medium as RR_medium,
+	RR.private as RR_private,
+	R.gid as R_gid,
+	R.name as R_name,
+	R.the_type as R_the_type,
+	R.change as R_change,
+	R.private as R_private,
+	L.gid as L_gid,
+	L.street as L_street,
+	L.locality as L_locality,
+	L.city as L_city,
+	L.county as L_county,
+	L.state as L_state,
+	L.country as L_country,
+	L.postal as L_postal,
+	L.phone as L_phone,
+	L.parish as L_parish
+from source_ref SR
+left join citation C
+on C.gid = SR.gid
+	and C.private = 0
+left join source S
+on SR.source_gid = S.gid
+	and S.private = 0
+left join repository_ref RR
+on RR.gid = SR.source_gid
+	and RR.private = 0
+left join repository R
+on RR.repository_gid = R.gid
+	and R.private = 0
+left join location L
+on L.gid = S.gid
+where SR.gid = 'C0000'
+and SR.private  = 0
+
 */
-	function do_date($date1, $modifier, $quality)
-	{
-		$res = '';
-
-		switch($quality)
-		{
-			case 0:
-				break; // regular
-			case 1:
-				$res = "Estimated ";
-				 break;
-			case 2:
-				$res = "Calculated ";
-				 break;
-			default:
-				$res = "Unknown quality ".$quality." ";
-		}
-
-		switch($modifier)
-		{
-			case 0:
-				 break; // regular
-			case 1:
-				$res = $res."Before ";
-				 break;
-			case 2:
-				$res = $res."After ";
-				 break;
-			case 3:
-				$res = "Estimated "; // About
-				 break;
-			case 4:
-				$res = $res."Range ";
-				 break;
-			case 5:
-				$res = $res."Span ";
-				 break;
-			case 6:
-				 break; // text only
-			default:
-				$res = $res."Unknown modifier ".$modifier." ";
-		}
-
-		$res = $res.$date1;
-
-		return $res;
-	}
-
-	function do_source($db, $gid)
-	{
-		// do place
-		$img = '';
-		$result = $db->query(
-			"select
-				S.title,
-				S.author,
-				S.pubinfo,
-				S.abbrev
-			from source S
-			where S.private = 0
-				and S.gid = '".$gid."'");
-		if ($row = $result->fetch())
-		{
-			$title = $row['title'];
-
-			if ($title != "" && !is_null($title))
-				print("<h3>".$title."</h3>\n");
-
-			print("<p><span class=\"name\">Source ID:</span> <span class=\"value\">".$gid."</span></p>\n");
-
-			$pubinfo = $row['pubinfo'];
-			if ($pubinfo != "" && !is_null($pubinfo))
-				print("<p><span class=\"name\">Publication Information:</span> <span class=\"value\">".$pubinfo."</span></p>\n");
-
-			$author = $row['author'];
-			//if ($author != "" && !is_null($author))
-				print("<p><span class=\"name\">Author:</span> <span class=\"value\">".$author."</span></p>\n");
-
-			$abbrev = $row['abbrev'];
-			if ($abbrev != "" && !is_null($abbrev))
-				print("<p><span class=\"name\">Abbreviation:</span> <span class=\"value\">".$abbrev."</span></p>\n");
-		}
-	}
 
 	function do_notes($db, $gid)
 	{
@@ -154,200 +126,122 @@
 		unset($row);
 	}
 
-	function do_person_reference($db, $gid)
+
+	function do_citation($db, $gid)
 	{
 		unset($result);
 		$result = $db->query(
 			"select
-				SR.citation_gid,
-				SR.gid,
-				N.first_name,
-				S.surname
-			from citation_ref SR
-			inner join name N
-				on N.gid = SR.gid
-				and N.private = 0
-			left join surname S
-				on N.gid = S.gid
+				C.gid as C_gid,
+				C.confidence as C_confidence,
+				C.page as C_page,
+				C.change as C_change,
+				C.private as C_private,
+				S.gid as S_gid,
+				S.title as S_title,
+				S.author as S_author,
+				S.pubinfo as S_pubinfo,
+				S.abbrev as S_abbrev,
+				S.change as S_change,
+				S.private as S_private,
+				RR.gid as RR_gid,
+				RR.repository_gid as RR_repository_gid,
+				RR.callno as RR_callno,
+				RR.medium as RR_medium,
+				RR.private as RR_private,
+				R.gid as R_gid,
+				R.name as R_name,
+				R.the_type as R_the_type,
+				R.change as R_change,
+				R.private as R_private,
+				L.gid as L_gid,
+				L.street as L_street,
+				L.locality as L_locality,
+				L.city as L_city,
+				L.county as L_county,
+				L.state as L_state,
+				L.country as L_country,
+				L.postal as L_postal,
+				L.phone as L_phone,
+				L.parish as L_parish
+			from source_ref SR
+			left join citation C
+			on C.gid = SR.gid
+				and C.private = 0
+			left join source S
+			on SR.source_gid = S.gid
+				and S.private = 0
+			left join repository_ref RR
+			on RR.gid = SR.source_gid
+				and RR.private = 0
+			left join repository R
+			on RR.repository_gid = R.gid
+				and R.private = 0
+			left join location L
+			on L.gid = S.gid
 			where SR.private = 0
-				and SR.citation_gid = '".$gid."'");
+			and SR.gid = '".$gid."'");
 
-		for($i=0; $row = $result->fetch(); $i++)
+		if ($row = $result->fetch())
 		{
-			if ($i == 0)
-			{
-				print("\n<h3>References</h3>\n");
-			}
+			print("\n<h3>Citation</h3>\n");
 			$ref_gid = $row['gid'];
-			$descr = "<a href=\"person.php?gid=".$ref_gid."\">".$row['first_name'].' '.$row['surname']."</a>";
+			if (is_null($row['C_page']) == false)
+				print("<p><span class=\"name\">Page:</span> <span class=\"value\">".$row['C_page']."</span></p>\n");
 
-			print("<p>".$descr."</p>\n");
-		}
-		unset($row);
-	}
+			print("\n<h3>Source</h3>\n");
+			if (is_null($row['S_title']) == false && $row['S_title'] != '')
+				print("<p><span class=\"name\">Title:</span> <span class=\"value\">".$row['S_title']."</span></p>\n");
+			if (is_null($row['S_author']) == false && $row['S_author'] != '')
+				print("<p><span class=\"name\">Author:</span> <span class=\"value\">".$row['S_author']."</span></p>\n");
+			if (is_null($row['S_pubinfo']) == false && $row['S_pubinfo'] != '')
+				print("<p><span class=\"name\">Publish Info:</span> <span class=\"value\">".$row['S_pubinfo']."</span></p>\n");
+			if (is_null($row['S_abbrev']) == false && $row['S_abbrev'] != '')
+				print("<p><span class=\"name\">Abbreviation:</span> <span class=\"value\">".$row['S_abbrev']."</span></p>\n");
+			if (is_null($row['RR_callno']) == false && $row['RR_callno'] != '')
+				print("<p><span class=\"name\">Call Number:</span> <span class=\"value\">".$row['RR_callno']."</span></p>\n");
+			if (is_null($row['RR_medium']) == false && $row['RR_medium'] != '')
+				print("<p><span class=\"name\">Medium:</span> <span class=\"value\">".$row['RR_medium']."</span></p>\n");
 
-	function do_event_reference($db, $gid)
-	{
-		unset($result);
-		$result = $db->query(
-			"select
-				SR.source_gid,
-				EN.gid,
-				EN.first_name||' '||ES.surname as name,
-				E.the_type0,
-				E.description,
-				D.date1,
-				D.the_type,
-				D.quality
-			from source_ref SR
-			inner join event E
-				on E.gid = SR.gid
-				and E.private = 0
-			left join event_ref ER
-				on E.gid = ER.event_gid
-				and ER.private = 0
-			left join name EN
-				on EN.gid = ER.gid
-				and EN.private = 0
-			left join surname ES
-				on EN.gid = ES.gid
-			left join date D
-				on E.gid = D.gid
-			where  SR.private = 0
-				and SR.source_gid = '".$gid."'");
+			print("\n<h3>Repository</h3>\n");
+			if (is_null($row['R_name']) != false)
+				print("<p><span class=\"name\">Repository:</span> <span class=\"value\">".$row['R_name']."</span></p>\n");
+			if (is_null($row['R_the_type']) != false)
+				print("<p><span class=\"name\">Type:</span> <span class=\"value\">".$row['R_the_type']."</span></p>\n");
 
-		for($i=0; $row = $result->fetch(); $i++)
-		{
-			if ($i == 0)
-			{
-				print("\n<h3>References</h3>\n");
-			}
-			$date = do_date($row['date1'], $row['the_type'], $row['quality']);
-			switch($row['the_type0'])
-			{
-				case 1:
-					$eventtype = "Marriage";
-					 break;
-				case 7:
-					$eventtype = "Divorce";
-					 break;
-				case 12:
-					$eventtype = "Birth";
-					 break;
-				case 13:
-					$eventtype = "Death";
-					 break;
-				case 15:
-					$eventtype = "Baptism";
-					 break;
-				case 19:
-					 $eventtype = "Burial";
-					 break;
-				case 24:
-					$eventtype = "Cremation";
-					 break;
-				case 25:
-					$eventtype = "Degree";
-					 break;
-				case 28:
-					$eventtype = "Emigration";
-					 break;
-				case 29:
-					$eventtype = "First Communion";
-					 break;
-				case 30:
-					$eventtype = "Immigration";
-					 break;
-				case 33:
-					$eventtype = "Military Service";
-					 break;
-				case 37:
-					$eventtype = "Occupation";
-					 break;
-				case 41:
-					$eventtype = "Religion";
-					 break;
-				case 42:
-					$eventtype = "Residence";
-					 break;
-				default:
-					$eventtype = "Unknown event ".$row['the_type0'];
-			}
-			$ref_gid = $row['gid'];
-			$descr = "<a href=\"person.php?gid=".$ref_gid."\">".$row['name']."</a>";
-
-			print("<p>".$date." ".$eventtype." ".$descr."</p>\n");
-		}
-		unset($row);
-	}
-
-	function do_family_reference($db, $gid)
-	{
-		unset($result);
-		$result = $db->query(
-			"select
-				SR.source_gid,
-				SR.gid,
-				F.father_gid,
-				FN.first_name||' '||FS.surname as FName,
-				F.mother_gid,
-				MN.first_name||' '||MS.surname as MName,
-				D.date1,
-				D.the_type,
-				D.quality
-			from source_ref SR
-			inner join family F
-				on F.gid = SR.gid
-			left join name FN
-				on FN.gid = F.father_gid
-				and FN.private = 0
-			left join surname FS
-				on FS.gid = F.father_gid
-			left join name MN
-				on MN.gid = F.mother_gid
-				and MN.private = 0
-			left join surname MS
-				on MS.gid = F.mother_gid
-			left join date D
-				on F.gid = D.gid
-			where  SR.private = 0
-				and SR.source_gid = '".$gid."'");
-
-		for($i=0; $row = $result->fetch(); $i++)
-		{
-			if ($i == 0)
-			{
-				print("\n<h3>References</h3>\n");
-			}
-			$date = do_date($row['date1'], $row['the_type'], $row['quality']);
-			$eventtype = "Family";
-			$ref_gid = $row['gid'];
-			$descr = "<a href=\"person.php?gid=".$row['father_gid']."\">".$row['FName']."</a> and <a href=\"person.php?gid=".$row['mother_gid']."\">".$row['MName']."</a>";
-
-			print("<p>".$date." ".$eventtype." ".$descr."</p>\n");
+			print("\n<h3>Location</h3>\n");
+			if ($row['L_street'] != '')
+				print("<p><span class=\"name\">Street:</span> <span class=\"value\">".$row['L_street']."</span></p>\n");
+			if ($row['L_locality'] != '')
+				print("<p><span class=\"name\">Locality:</span> <span class=\"value\">".$row['L_locality']."</span></p>\n");
+			if ($row['L_city'] != '')
+				print("<p><span class=\"name\">City:</span> <span class=\"value\">".$row['L_city']."</span></p>\n");
+			if ($row['L_county'] != '')
+				print("<p><span class=\"name\">County:</span> <span class=\"value\">".$row['L_county']."</span></p>\n");
+			if ($row['L_state'] != '')
+				print("<p><span class=\"name\"></span>State:</span> <span class=\"value\">".$row['L_state']."</span></p>\n");
+			if ($row['L_country'] != '')
+				print("<p><span class=\"name\">Country:</span> <span class=\"value\">".$row['L_country']."</span></p>\n");
+			if ($row['L_postal'] != '')
+				print("<p><span class=\"name\">Postal Code:</span> <span class=\"value\">".$row['L_postal']."</span></p>\n");
+			if ($row['L_phone'] != '')
+				print("<p><span class=\"name\">Phone Number:</span> <span class=\"value\">".$row['L_phone']."</span></p>\n");
+			if ($row['L_parish'] != '')
+				print("<p><span class=\"name\">Parish:</span> <span class=\"value\">".$row['L_parish']."</span></p>\n");
 		}
 		unset($row);
 	}
 
 	require_once 'template.php';
-	echo head('Source', '');
+	echo head('Citation', '');
 	try
 	{
 		$gid = $_GET["gid"];
 		//open the database
 		$db = new PDO('sqlite:../../.sqlite/gramps1.db');
 
-		do_source($db, $gid);
+		do_citation($db, $gid);
 
-		do_notes($db, $gid);
-
-		do_gallery($db, $gid);
-
-		do_person_reference($db, $gid);
-
-		do_event_reference($db, $gid);
-
-		// close the database connection
 		$db = NULL;
 	}
 	catch(PDOException $e)

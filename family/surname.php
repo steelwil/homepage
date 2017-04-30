@@ -21,7 +21,7 @@
   echo head('Surname', '');
   try
   {
-  	$surname = $_GET["surname"];
+	$surname = sqlite_escape_string($_GET["surname"]);
 	print("\n<h3>".$surname."</h3>\n");
 	if ($surname == 'Unknown')
 	{
@@ -37,7 +37,9 @@
 			P.gender as gender,
 			first_name,
 			max(D.date1) as date1,
-			max(D.quality) as quality
+			max(D.quality) as quality,
+			max(N.private) as private,
+			max(E.private) as BirthPrivate
 		from name N
 		inner join person P
 			on P.gid = N.gid
@@ -58,17 +60,23 @@
 	foreach($result as $row)
 	{
 		$gid = $row['gid'];
+		$private = $row['private'];
 		$descrip = '*';
-		$descrip = substr($descrip.$row['date1'], 0, 5);
+		if ($row['BirthPrivate'] == 0)
+			$descrip = substr($descrip.$row['date1'], 0, 5);
 		if ($descrip == '*')
 			$descrip = "";
-		$first_name = $row['first_name'];
+		if ($private == 1)
+			$first_name = substr($row['first_name'], 0, 1);
+		else
+			$first_name = $row['first_name'];
+
 		$gender = $row['gender'];
 		if ($first_name == '')
 		{
-			if ($gender == 1)
+			if ($gender == 'F')
 				$first_name = "Unknown Female";
-			elseif ($gender == 0)
+			elseif ($gender == 'M')
 				$first_name = "Unknown Male";
 			else
 				$first_name = "Unknown";

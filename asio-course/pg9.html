@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Networking basics: binary protocol sending and receiving (TCP)</title>
+<link rel="stylesheet" type="text/css" href="basic.css">
+</head>
+<body>
+<div class="nav">
+<a href="pg8.html"><img src="prev.png" alt="Prev"></a><a href="pg1.html"><img src="up.png" alt="Up"></a><a href="pg1.html"><img src="home.png" alt="Home"></a><a href="pg10.html"><img src="next.png" alt="Next"></a>
+</div>
+<h1 class="ipsType_pagetitle">A guide to getting started with asio</h1>
+<div class="desc">
+Posted by <strong><a title="" href="http://www.gamedev.net/user/64367-drew_benton/" class=
+"url fn name ___hover___member _hoversetup" id="anonymous_element_3" name=
+"anonymous_element_3"><span>Drew_Benton</span></a></strong>, 31 January 2011 ~ 190,508 views
+</div>
+<br class="clear">
+<div class="entry_content ipsType_textblock ipsPad">
+<strong class="bbc">8. Networking basics: binary protocol sending and receiving (TCP)</strong>
+<br>
+<br>
+To really get anything useful done with our sockets, we must be able to read and write to them. There are many different ways to go
+about this. Some protocols rely on text (ascii/unicode) while others require on binary. This chapter will just focus on smaller
+binary examples. For a more extensive set of examples, the asio <a rel="nofollow external" title="External link" class=
+"bbc_url" href="http://beta.boost.org/doc/libs/1_60_0/doc/html/boost_asio/examples.html">example page</a> has a lot of useful
+reference material.
+<br>
+<br>
+There are many types of functions for sending and receiving. Depending on our protocol, we will want to choose between them based
+on what best suites our application. Here is a list of relevant functions we need to be aware of:
+<br>
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/basic_stream_socket.html">basic_stream_socket</a>:
+<br>
+<div class="bbc_spoiler bbc_spoiler_wrapper bbc_spoiler_content">
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/basic_stream_socket/async_read_some.html">async_read_some</a> -
+"This function is used to asynchronously read data from the stream socket. The function call always returns immediately."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/basic_stream_socket/async_receive/overload1.html">async_receive</a>
+- "This function is used to asynchronously receive data from the stream socket. The function call always returns immediately."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/basic_stream_socket/async_send/overload1.html">async_send</a> -
+"This function is used to asynchronously send data on the stream socket. The function call always returns immediately."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/basic_stream_socket/async_write_some.html">async_write_some</a>
+- "This function is used to asynchronously write data to the stream socket. The function call always returns immediately."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/basic_stream_socket/receive/overload1.html">receive</a> - "This
+function is used to receive data on the stream socket. The function call will block until one or more bytes of data has been
+received successfully, or until an error occurs."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/basic_stream_socket/read_some/overload1.html">read_some</a> -
+"This function is used to read data from the stream socket. The function call will block until one or more bytes of data has been
+read successfully, or until an error occurs."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/basic_stream_socket/send/overload1.html">send</a> - "This
+function is used to send data on the stream socket. The function call will block until one or more bytes of the data has been sent
+successfully, or an until error occurs."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/basic_stream_socket/write_some/overload1.html">write_some</a> -
+"This function is used to write data to the stream socket. The function call will block until one or more bytes of the data has
+been written successfully, or until an error occurs."
+<br>
+</div>
+<br>
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference.html">asio Free Functions</a>
+<br>
+<div class="bbc_spoiler bbc_spoiler_wrapper bbc_spoiler_content">
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/async_read.html">async_read</a> - "Start an asynchronous
+operation to read a certain amount of data from a stream."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/async_read_at.html">async_read_at</a> - "Start an asynchronous
+operation to read a certain amount of data at the specified offset."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/async_read_until.html">async_read_until</a> - "Start an
+asynchronous operation to read data into a streambuf until it contains a delimiter, matches a regular expression, or a function
+object indicates a match."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/async_write.html">async_write</a> - "Start an asynchronous
+operation to write a certain amount of data to a stream."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/async_write_at.html">async_write_at</a> - "Start an
+asynchronous operation to write a certain amount of data at the specified offset."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/read.html">read</a> - "Attempt to read a certain amount of data
+from a stream before returning."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/read_at.html">read_at</a> - "Attempt to read a certain amount
+of data at the specified offset before returning."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/read_until.html">read_until</a> - "Read data into a streambuf
+until it contains a delimiter, matches a regular expression, or a function object indicates a match."
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/write.html">write</a> - "Write a certain amount of data to a
+stream before returning. "
+<br>
+<a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/write_at.html">write_at</a> - "Write a certain amount of data
+at a specified offset before returning. "
+<br>
+</div>
+<br>
+<br>
+Wow! That is a lot of functions. We should remember that asio is more than just networking functions, so that is why there
+are so many of them. As we spend more time using the asio library, we will be able to readily know which functions our
+application should be using. For this guide, we will make use of async_write and async_read_some. The reason we will use
+async_write is because the function will write all of the data for us, so we do not have to worry about partial sends. Likewise, we
+are using async_read_some as a generic function to read some data since we do not have a specific protocol we are using for
+receiving. We will go over this concept a bit later.
+<br>
+<br>
+For now, let us take a look at a complete example of using our IO functions. We will be using a modified server example from
+Example 7C.
+<br>
+<br>
+<strong class="bbc">Example 8a</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;memory&gt;</span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;thread&gt;</span>
+<span class="hl lin">    4 </span><span class="hl ppc">#include &lt;mutex&gt;</span>
+<span class="hl lin">    5 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    6 </span><span class="hl ppc">#include &lt;string&gt;</span>
+<span class="hl lin">    7 </span><span class="hl ppc">#include &lt;vector&gt;</span>
+<span class="hl lin">    8 </span><span class="hl ppc">#include &lt;list&gt;</span>
+<span class="hl lin">    9 </span><span class="hl ppc">#include &lt;iomanip&gt;</span>
+<span class="hl lin">   10 </span>
+<span class="hl lin">   11 </span><span class="hl kwa">using namespace</span> std<span class="hl opt">::</span>placeholders<span class="hl opt">;</span> <span class="hl slc">// adds _1, _2, ...</span>
+<span class="hl lin">   12 </span>std<span class="hl opt">::</span>mutex global_stream_lock<span class="hl opt">;</span>
+<span class="hl lin">   13 </span>
+<span class="hl lin">   14 </span><span class="hl kwb">void</span> <span class="hl kwd">WorkerThread</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>asio<span class="hl opt">::</span>io_service<span class="hl opt">&gt;</span> io_service<span class="hl opt">)</span>
+<span class="hl lin">   15 </span><span class="hl opt">{</span>
+<span class="hl lin">   16 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   17 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Thread Start&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   18 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   19 </span>
+<span class="hl lin">   20 </span>    <span class="hl kwa">while</span> <span class="hl opt">(</span><span class="hl kwa">true</span><span class="hl opt">)</span>
+<span class="hl lin">   21 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   22 </span>        <span class="hl kwa">try</span>
+<span class="hl lin">   23 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   24 </span>            asio<span class="hl opt">::</span>error_code ec<span class="hl opt">;</span>
+<span class="hl lin">   25 </span>            io_service<span class="hl opt">-&gt;</span><span class="hl kwd">run</span><span class="hl opt">(</span>ec<span class="hl opt">);</span>
+<span class="hl lin">   26 </span>            <span class="hl kwa">if</span> <span class="hl opt">(</span>ec<span class="hl opt">)</span>
+<span class="hl lin">   27 </span>            <span class="hl opt">{</span>
+<span class="hl lin">   28 </span>                global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   29 </span>                std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Error: &quot;</span> <span class="hl opt">&lt;&lt;</span> ec <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   30 </span>                global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   31 </span>            <span class="hl opt">}</span>
+<span class="hl lin">   32 </span>            <span class="hl kwa">break</span><span class="hl opt">;</span>
+<span class="hl lin">   33 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   34 </span>        <span class="hl kwa">catch</span> <span class="hl opt">(</span>std<span class="hl opt">::</span>exception<span class="hl opt">&amp;</span> ex<span class="hl opt">)</span>
+<span class="hl lin">   35 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   36 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   37 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Exception: &quot;</span> <span class="hl opt">&lt;&lt;</span> ex<span class="hl opt">.</span><span class="hl kwd">what</span><span class="hl opt">() &lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   38 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   39 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   40 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   41 </span>
+<span class="hl lin">   42 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   43 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Thread Finish&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   44 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   45 </span><span class="hl opt">}</span>
+<span class="hl lin">   46 </span>
+<span class="hl lin">   47 </span><span class="hl kwb">struct</span> ClientContext <span class="hl opt">:</span> <span class="hl kwc">public</span> std<span class="hl opt">::</span>enable_shared_from_this<span class="hl opt">&lt;</span>ClientContext<span class="hl opt">&gt;</span>
+<span class="hl lin">   48 </span><span class="hl opt">{</span>
+<span class="hl lin">   49 </span>    asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>socket m_socket<span class="hl opt">;</span>
+<span class="hl lin">   50 </span>
+<span class="hl lin">   51 </span>    std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span>std<span class="hl opt">::</span><span class="hl kwb">uint8_t</span><span class="hl opt">&gt;</span> m_recv_buffer<span class="hl opt">;</span>
+<span class="hl lin">   52 </span>    <span class="hl kwb">size_t</span> m_recv_buffer_index<span class="hl opt">;</span>
+<span class="hl lin">   53 </span>
+<span class="hl lin">   54 </span>    std<span class="hl opt">::</span>list<span class="hl opt">&lt;</span>std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span>std<span class="hl opt">::</span><span class="hl kwb">uint8_t</span><span class="hl opt">&gt; &gt;</span> m_send_buffer<span class="hl opt">;</span>
+<span class="hl lin">   55 </span>
+<span class="hl lin">   56 </span>    <span class="hl kwd">ClientContext</span><span class="hl opt">(</span>asio<span class="hl opt">::</span>io_service<span class="hl opt">&amp;</span> io_service<span class="hl opt">)</span>
+<span class="hl lin">   57 </span>        <span class="hl opt">:</span> <span class="hl kwd">m_socket</span><span class="hl opt">(</span>io_service<span class="hl opt">)</span>
+<span class="hl lin">   58 </span>        <span class="hl opt">,</span> <span class="hl kwd">m_recv_buffer_index</span><span class="hl opt">(</span><span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">   59 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   60 </span>        m_recv_buffer<span class="hl opt">.</span><span class="hl kwd">resize</span><span class="hl opt">(</span><span class="hl num">4096</span><span class="hl opt">);</span>
+<span class="hl lin">   61 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   62 </span>
+<span class="hl lin">   63 </span>    <span class="hl opt">~</span><span class="hl kwd">ClientContext</span><span class="hl opt">()</span>
+<span class="hl lin">   64 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   65 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   66 </span>
+<span class="hl lin">   67 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Close</span><span class="hl opt">()</span>
+<span class="hl lin">   68 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   69 </span>        asio<span class="hl opt">::</span>error_code ec<span class="hl opt">;</span>
+<span class="hl lin">   70 </span>        m_socket<span class="hl opt">.</span><span class="hl kwd">shutdown</span><span class="hl opt">(</span>asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>socket<span class="hl opt">::</span>shutdown_both<span class="hl opt">,</span> ec<span class="hl opt">);</span>
+<span class="hl lin">   71 </span>        m_socket<span class="hl opt">.</span><span class="hl kwd">close</span><span class="hl opt">(</span>ec<span class="hl opt">);</span>
+<span class="hl lin">   72 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   73 </span>
+<span class="hl lin">   74 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnSend</span><span class="hl opt">(</span><span class="hl kwb">const</span> asio<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> ec<span class="hl opt">,</span> std<span class="hl opt">::</span>list<span class="hl opt">&lt;</span>std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span>std<span class="hl opt">::</span><span class="hl kwb">uint8_t</span><span class="hl opt">&gt; &gt;::</span>iterator itr<span class="hl opt">)</span>
+<span class="hl lin">   75 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   76 </span>        <span class="hl kwa">if</span> <span class="hl opt">(</span>ec<span class="hl opt">)</span>
+<span class="hl lin">   77 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   78 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   79 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Error: &quot;</span> <span class="hl opt">&lt;&lt;</span> ec <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   80 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   81 </span>
+<span class="hl lin">   82 </span>            <span class="hl kwd">Close</span><span class="hl opt">();</span>
+<span class="hl lin">   83 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   84 </span>        <span class="hl kwa">else</span>
+<span class="hl lin">   85 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   86 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   87 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Sent &quot;</span> <span class="hl opt">&lt;&lt; (*</span>itr<span class="hl opt">).</span><span class="hl kwd">size</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot; bytes.&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   88 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   89 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   90 </span>        m_send_buffer<span class="hl opt">.</span><span class="hl kwd">erase</span><span class="hl opt">(</span>itr<span class="hl opt">);</span>
+<span class="hl lin">   91 </span>
+<span class="hl lin">   92 </span>        <span class="hl slc">// Start the next pending send</span>
+<span class="hl lin">   93 </span>        <span class="hl kwa">if</span> <span class="hl opt">(!</span>m_send_buffer<span class="hl opt">.</span><span class="hl kwd">empty</span><span class="hl opt">())</span>
+<span class="hl lin">   94 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   95 </span>            asio<span class="hl opt">::</span><span class="hl kwd">async_write</span><span class="hl opt">(</span>
+<span class="hl lin">   96 </span>                m_socket<span class="hl opt">,</span>
+<span class="hl lin">   97 </span>                asio<span class="hl opt">::</span><span class="hl kwd">buffer</span><span class="hl opt">(</span>m_send_buffer<span class="hl opt">.</span><span class="hl kwd">front</span><span class="hl opt">()),</span>
+<span class="hl lin">   98 </span>                std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(</span>
+<span class="hl lin">   99 </span>                    <span class="hl opt">&amp;</span>ClientContext<span class="hl opt">::</span>OnSend<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> _1<span class="hl opt">,</span> m_send_buffer<span class="hl opt">.</span><span class="hl kwd">begin</span><span class="hl opt">()));</span>
+<span class="hl lin">  100 </span>        <span class="hl opt">}</span>
+<span class="hl lin">  101 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  102 </span>
+<span class="hl lin">  103 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Send</span><span class="hl opt">(</span><span class="hl kwb">const void</span><span class="hl opt">*</span> buffer<span class="hl opt">,</span> <span class="hl kwb">size_t</span> length<span class="hl opt">)</span>
+<span class="hl lin">  104 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  105 </span>        <span class="hl kwb">bool</span> can_send_now <span class="hl opt">=</span> <span class="hl kwa">false</span><span class="hl opt">;</span>
+<span class="hl lin">  106 </span>
+<span class="hl lin">  107 </span>        std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span>std<span class="hl opt">::</span><span class="hl kwb">uint8_t</span><span class="hl opt">&gt;</span> output<span class="hl opt">;</span>
+<span class="hl lin">  108 </span>        std<span class="hl opt">::</span><span class="hl kwd">copy</span><span class="hl opt">((</span><span class="hl kwb">const</span> std<span class="hl opt">::</span><span class="hl kwb">uint8_t</span><span class="hl opt">*)</span>buffer<span class="hl opt">, (</span><span class="hl kwb">const</span> std<span class="hl opt">::</span><span class="hl kwb">uint8_t</span><span class="hl opt">*)</span>buffer <span class="hl opt">+</span> length<span class="hl opt">,</span> std<span class="hl opt">::</span><span class="hl kwd">back_inserter</span><span class="hl opt">(</span>output<span class="hl opt">));</span>
+<span class="hl lin">  109 </span>
+<span class="hl lin">  110 </span>        <span class="hl slc">// Store if this is the only current send or not</span>
+<span class="hl lin">  111 </span>        can_send_now <span class="hl opt">=</span> m_send_buffer<span class="hl opt">.</span><span class="hl kwd">empty</span><span class="hl opt">();</span>
+<span class="hl lin">  112 </span>
+<span class="hl lin">  113 </span>        <span class="hl slc">// Save the buffer to be sent</span>
+<span class="hl lin">  114 </span>        m_send_buffer<span class="hl opt">.</span><span class="hl kwd">push_back</span><span class="hl opt">(</span>output<span class="hl opt">);</span>
+<span class="hl lin">  115 </span>
+<span class="hl lin">  116 </span>        <span class="hl slc">// Only send if there are no more pending buffers waiting!</span>
+<span class="hl lin">  117 </span>        <span class="hl kwa">if</span> <span class="hl opt">(</span>can_send_now<span class="hl opt">)</span>
+<span class="hl lin">  118 </span>        <span class="hl opt">{</span>
+<span class="hl lin">  119 </span>            <span class="hl slc">// Start the next pending send</span>
+<span class="hl lin">  120 </span>            asio<span class="hl opt">::</span><span class="hl kwd">async_write</span><span class="hl opt">(</span>
+<span class="hl lin">  121 </span>                m_socket<span class="hl opt">,</span>
+<span class="hl lin">  122 </span>                asio<span class="hl opt">::</span><span class="hl kwd">buffer</span><span class="hl opt">(</span>m_send_buffer<span class="hl opt">.</span><span class="hl kwd">front</span><span class="hl opt">()),</span>
+<span class="hl lin">  123 </span>                std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(</span>
+<span class="hl lin">  124 </span>                    <span class="hl opt">&amp;</span>ClientContext<span class="hl opt">::</span>OnSend<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> _1<span class="hl opt">,</span> m_send_buffer<span class="hl opt">.</span><span class="hl kwd">begin</span><span class="hl opt">()));</span>
+<span class="hl lin">  125 </span>        <span class="hl opt">}</span>
+<span class="hl lin">  126 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  127 </span>
+<span class="hl lin">  128 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnRecv</span><span class="hl opt">(</span><span class="hl kwb">const</span> asio<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> ec<span class="hl opt">,</span> <span class="hl kwb">size_t</span> bytes_transferred<span class="hl opt">)</span>
+<span class="hl lin">  129 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  130 </span>        <span class="hl kwa">if</span> <span class="hl opt">(</span>ec<span class="hl opt">)</span>
+<span class="hl lin">  131 </span>        <span class="hl opt">{</span>
+<span class="hl lin">  132 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">  133 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Error: &quot;</span> <span class="hl opt">&lt;&lt;</span> ec <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">  134 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">  135 </span>
+<span class="hl lin">  136 </span>            <span class="hl kwd">Close</span><span class="hl opt">();</span>
+<span class="hl lin">  137 </span>        <span class="hl opt">}</span>
+<span class="hl lin">  138 </span>        <span class="hl kwa">else</span>
+<span class="hl lin">  139 </span>        <span class="hl opt">{</span>
+<span class="hl lin">  140 </span>            <span class="hl slc">// Increase how many bytes we have saved up</span>
+<span class="hl lin">  141 </span>            m_recv_buffer_index <span class="hl opt">+=</span> bytes_transferred<span class="hl opt">;</span>
+<span class="hl lin">  142 </span>
+<span class="hl lin">  143 </span>            <span class="hl slc">// Debug information</span>
+<span class="hl lin">  144 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">  145 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Recv &quot;</span> <span class="hl opt">&lt;&lt;</span> bytes_transferred <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot; bytes.&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">  146 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">  147 </span>
+<span class="hl lin">  148 </span>            <span class="hl slc">// Dump all the data</span>
+<span class="hl lin">  149 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">  150 </span>            <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> m_recv_buffer_index<span class="hl opt">; ++</span>x<span class="hl opt">)</span>
+<span class="hl lin">  151 </span>            <span class="hl opt">{</span>
+<span class="hl lin">  152 </span>                std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>hex <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span><span class="hl kwd">setfill</span><span class="hl opt">(</span><span class="hl str">'0'</span><span class="hl opt">) &lt;&lt;</span> std<span class="hl opt">::</span><span class="hl kwd">setw</span><span class="hl opt">(</span><span class="hl num">2</span><span class="hl opt">) &lt;&lt; (</span><span class="hl kwb">int</span><span class="hl opt">)</span>m_recv_buffer<span class="hl opt">[</span>x<span class="hl opt">] &lt;&lt;</span> <span class="hl str">&quot; &quot;</span><span class="hl opt">;</span>
+<span class="hl lin">  153 </span>                <span class="hl kwa">if</span> <span class="hl opt">((</span>x <span class="hl opt">+</span> <span class="hl num">1</span><span class="hl opt">) %</span> <span class="hl num">16</span> <span class="hl opt">==</span> <span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">  154 </span>                <span class="hl opt">{</span>
+<span class="hl lin">  155 </span>                    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">  156 </span>                <span class="hl opt">}</span>
+<span class="hl lin">  157 </span>            <span class="hl opt">}</span>
+<span class="hl lin">  158 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>dec<span class="hl opt">;</span>
+<span class="hl lin">  159 </span>            global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">  160 </span>
+<span class="hl lin">  161 </span>            <span class="hl slc">// Discard all the data (virtually, not physically!)</span>
+<span class="hl lin">  162 </span>            m_recv_buffer_index <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">  163 </span>
+<span class="hl lin">  164 </span>            <span class="hl slc">// Start the next recv cycle</span>
+<span class="hl lin">  165 </span>            <span class="hl kwd">Recv</span><span class="hl opt">();</span>
+<span class="hl lin">  166 </span>        <span class="hl opt">}</span>
+<span class="hl lin">  167 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  168 </span>
+<span class="hl lin">  169 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Recv</span><span class="hl opt">()</span>
+<span class="hl lin">  170 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  171 </span>        m_socket<span class="hl opt">.</span><span class="hl kwd">async_read_some</span><span class="hl opt">(</span>
+<span class="hl lin">  172 </span>            asio<span class="hl opt">::</span><span class="hl kwd">buffer</span><span class="hl opt">(&amp;</span>m_recv_buffer<span class="hl opt">[</span>m_recv_buffer_index<span class="hl opt">],</span> m_recv_buffer<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">() -</span> m_recv_buffer_index<span class="hl opt">),</span>
+<span class="hl lin">  173 </span>            std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>ClientContext<span class="hl opt">::</span>OnRecv<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> _1<span class="hl opt">,</span> _2<span class="hl opt">));</span>
+<span class="hl lin">  174 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  175 </span><span class="hl opt">};</span>
+<span class="hl lin">  176 </span>
+<span class="hl lin">  177 </span><span class="hl kwb">void</span> <span class="hl kwd">OnAccept</span><span class="hl opt">(</span><span class="hl kwb">const</span> asio<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> ec<span class="hl opt">,</span> std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>ClientContext<span class="hl opt">&gt;</span> client<span class="hl opt">)</span>
+<span class="hl lin">  178 </span><span class="hl opt">{</span>
+<span class="hl lin">  179 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>ec<span class="hl opt">)</span>
+<span class="hl lin">  180 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  181 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">  182 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Error: &quot;</span> <span class="hl opt">&lt;&lt;</span> ec <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">  183 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">  184 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  185 </span>    <span class="hl kwa">else</span>
+<span class="hl lin">  186 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  187 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">  188 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Accepted!&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">  189 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">  190 </span>
+<span class="hl lin">  191 </span>        <span class="hl slc">// 2 bytes message size, followed by the message</span>
+<span class="hl lin">  192 </span>        client<span class="hl opt">-&gt;</span><span class="hl kwd">Send</span><span class="hl opt">(</span><span class="hl str">&quot;</span><span class="hl esc">\x02\x00</span><span class="hl str">Hi&quot;</span><span class="hl opt">,</span> <span class="hl num">6</span><span class="hl opt">);</span>
+<span class="hl lin">  193 </span>        client<span class="hl opt">-&gt;</span><span class="hl kwd">Recv</span><span class="hl opt">();</span>
+<span class="hl lin">  194 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  195 </span><span class="hl opt">}</span>
+<span class="hl lin">  196 </span>
+<span class="hl lin">  197 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span><span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span><span class="hl opt">*</span> argv<span class="hl opt">[])</span>
+<span class="hl lin">  198 </span><span class="hl opt">{</span>
+<span class="hl lin">  199 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>asio<span class="hl opt">::</span>io_service<span class="hl opt">&gt;</span> <span class="hl kwd">io_service</span><span class="hl opt">(</span><span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">);</span>
+<span class="hl lin">  200 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>work<span class="hl opt">&gt;</span> <span class="hl kwd">work</span><span class="hl opt">(</span><span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">work</span><span class="hl opt">(*</span>io_service<span class="hl opt">));</span>
+<span class="hl lin">  201 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>strand<span class="hl opt">&gt;</span> <span class="hl kwd">strand</span><span class="hl opt">(</span><span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">strand</span><span class="hl opt">(*</span>io_service<span class="hl opt">));</span>
+<span class="hl lin">  202 </span>
+<span class="hl lin">  203 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">  204 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Press [return] to exit.&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">  205 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">  206 </span>
+<span class="hl lin">  207 </span>    <span class="hl slc">// 1 worker thread so we do not have to deal with thread safety issues</span>
+<span class="hl lin">  208 </span>    std<span class="hl opt">::</span>thread worker_threads<span class="hl opt">[</span><span class="hl num">1</span><span class="hl opt">];</span>
+<span class="hl lin">  209 </span>    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">1</span><span class="hl opt">; ++</span>x<span class="hl opt">)</span>
+<span class="hl lin">  210 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  211 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">] =</span> std<span class="hl opt">::</span><span class="hl kwd">thread</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>WorkerThread<span class="hl opt">,</span> io_service<span class="hl opt">));</span>
+<span class="hl lin">  212 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  213 </span>
+<span class="hl lin">  214 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>acceptor<span class="hl opt">&gt;</span> <span class="hl kwd">acceptor</span><span class="hl opt">(</span><span class="hl kwa">new</span> asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span><span class="hl kwd">acceptor</span><span class="hl opt">(*</span>io_service<span class="hl opt">));</span>
+<span class="hl lin">  215 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>ClientContext<span class="hl opt">&gt;</span> <span class="hl kwd">client</span><span class="hl opt">(</span><span class="hl kwa">new</span> <span class="hl kwd">ClientContext</span><span class="hl opt">(*</span>io_service<span class="hl opt">));</span>
+<span class="hl lin">  216 </span>
+<span class="hl lin">  217 </span>    <span class="hl kwa">try</span>
+<span class="hl lin">  218 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  219 </span>        asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>resolver <span class="hl kwd">resolver</span><span class="hl opt">(*</span>io_service<span class="hl opt">);</span>
+<span class="hl lin">  220 </span>        asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>resolver<span class="hl opt">::</span>query <span class="hl kwd">query</span><span class="hl opt">(</span><span class="hl str">&quot;127.0.0.1&quot;</span><span class="hl opt">,</span> std<span class="hl opt">::</span><span class="hl kwd">to_string</span><span class="hl opt">(</span><span class="hl num">7777</span><span class="hl opt">));</span>
+<span class="hl lin">  221 </span>        asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>endpoint endpoint <span class="hl opt">= *</span>resolver<span class="hl opt">.</span><span class="hl kwd">resolve</span><span class="hl opt">(</span>query<span class="hl opt">);</span>
+<span class="hl lin">  222 </span>        acceptor<span class="hl opt">-&gt;</span><span class="hl kwd">open</span><span class="hl opt">(</span>endpoint<span class="hl opt">.</span><span class="hl kwd">protocol</span><span class="hl opt">());</span>
+<span class="hl lin">  223 </span>        acceptor<span class="hl opt">-&gt;</span><span class="hl kwd">set_option</span><span class="hl opt">(</span>asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>acceptor<span class="hl opt">::</span><span class="hl kwd">reuse_address</span><span class="hl opt">(</span><span class="hl kwa">false</span><span class="hl opt">));</span>
+<span class="hl lin">  224 </span>        acceptor<span class="hl opt">-&gt;</span><span class="hl kwd">bind</span><span class="hl opt">(</span>endpoint<span class="hl opt">);</span>
+<span class="hl lin">  225 </span>        acceptor<span class="hl opt">-&gt;</span><span class="hl kwd">listen</span><span class="hl opt">(</span>asio<span class="hl opt">::</span>socket_base<span class="hl opt">::</span>max_connections<span class="hl opt">);</span>
+<span class="hl lin">  226 </span>        acceptor<span class="hl opt">-&gt;</span><span class="hl kwd">async_accept</span><span class="hl opt">(</span>client<span class="hl opt">-&gt;</span>m_socket<span class="hl opt">,</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(</span>OnAccept<span class="hl opt">,</span> _1<span class="hl opt">,</span> client<span class="hl opt">));</span>
+<span class="hl lin">  227 </span>
+<span class="hl lin">  228 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">  229 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;Listening on: &quot;</span> <span class="hl opt">&lt;&lt;</span> endpoint <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">  230 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">  231 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  232 </span>    <span class="hl kwa">catch</span> <span class="hl opt">(</span>std<span class="hl opt">::</span>exception<span class="hl opt">&amp;</span> ex<span class="hl opt">)</span>
+<span class="hl lin">  233 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  234 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">  235 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Exception: &quot;</span> <span class="hl opt">&lt;&lt;</span> ex<span class="hl opt">.</span><span class="hl kwd">what</span><span class="hl opt">() &lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">  236 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">  237 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  238 </span>
+<span class="hl lin">  239 </span>    std<span class="hl opt">::</span>cin<span class="hl opt">.</span><span class="hl kwd">get</span><span class="hl opt">();</span>
+<span class="hl lin">  240 </span>
+<span class="hl lin">  241 </span>    asio<span class="hl opt">::</span>error_code ec<span class="hl opt">;</span>
+<span class="hl lin">  242 </span>    acceptor<span class="hl opt">-&gt;</span><span class="hl kwd">close</span><span class="hl opt">(</span>ec<span class="hl opt">);</span>
+<span class="hl lin">  243 </span>
+<span class="hl lin">  244 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">stop</span><span class="hl opt">();</span>
+<span class="hl lin">  245 </span>
+<span class="hl lin">  246 </span>    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">1</span><span class="hl opt">; ++</span>x<span class="hl opt">)</span>
+<span class="hl lin">  247 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  248 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">].</span><span class="hl kwd">join</span><span class="hl opt">();</span>
+<span class="hl lin">  249 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  250 </span>
+<span class="hl lin">  251 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">  252 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+
+<pre class="hl"><span class="hl lin">    1 </span>[140259319375680] Press [return] to exit.
+<span class="hl lin">    2 </span>[140259302610688] Thread Start
+<span class="hl lin">    3 </span>Listening on: 127.0.0.1:7777
+</pre>
+
+In this example, we add a ClientContext class that houses all of the context specific stuff for our incoming connections. This
+class wraps up the necessary IO functionality for sending and receiving. In this example, the server will send a message to the
+incoming connection in a format of (message size)[xx xx] (message payload)[ xx ... xx]. However, we do not have a client yet so to
+test we can simply telnet into the server to receive the data. Any data we send to the server will be dumped out on the console.
+<br>
+<br>
+There are a couple of things we need to take away from the previous example. First, each connection we wish to service needs its
+own context. This context should contain the socket as well as the send/recv buffers as well as any other user data. Next, the
+example is not particularly thread safe per se, so we only limit it to one worker thread. We will cover this problem later. For now
+though, the concepts of reading and writing to the socket should be made clear. We simply choose the right API functions for our
+particular task and make sure to properly use them.
+<br>
+<br>
+In order to properly use them, we must make sure the context and the buffers remain valid the entire duration of the function. In
+this case, we use a list of vectors for the sends and one vector to act as a common receive buffer. Depending on the protocol we
+have to implement, we might want to change a few things here and there. For example, let us say we want to process packets in our
+stream. In that case, we would want to use async_read with the size of the header followed by another call to async_read with the
+exact size of the payload. That way, we do not have to keep track of the stream position when using async_read_some.
+<br>
+<br>
+The disadvantage of processing packets one at a time in the stream is that it is inefficient in larger scale programs. Imagine we
+had 100 3 byte messages in the stream. We would have to execute our "read one packet" logic 100 times! Compare that to if we used
+async_read_some, we would most likely get all of the data at once and the logically parse it. That is the preferred method, but it
+is also more complex. Depending on our application needs, we must decide which route we go. For some cases, we could not use either
+or though. For example, if we have a stream protocol, such as HTTP, then we cannot simply wait for an exact amount of bytes at a
+time but instead just receive as much as we can and then process it.
+<br>
+<br>
+The code for a client would look similar as well. The only difference is that the connection context would connect to a remote host
+rather than be accepted. As a result, we can reuse a lot of the code. However, we will not dive into modifying the previous example
+to a client. The reason is because at this point of the guide, we have been exposed to all of the concepts we need to be aware of
+for using the asio library for TCP programming. This means we can take a look at a full network wrapper and we should be
+able to understand all of the concepts that are used.
+<br>
+<br>
+The reason we want to make a transition into the network wrapper is because we need reusable code to work from rather than recoding
+the same logic over and over as we have been. Another benefit of the wrapper is that it has been tested and should be relatively
+bug free. Having code that works to reference in the future can be a great help as we go on to write our own code. With that said,
+we will take a look at the network wrapper next.
+<br>
+<hr>
+<div class="nav">
+<a accesskey="p" href="pg8.html"><img src="prev.png" alt="Prev"></a><a accesskey="u" href="pg1.html"><img src="up.png" alt="Up"></a><a accesskey="h" href="pg1.html"><img src="home.png" alt="Home"></a><a accesskey="n" href="pg10.html"><img src="next.png" alt="Next"></a>
+</div>
+</div>
+</body>
+</html>

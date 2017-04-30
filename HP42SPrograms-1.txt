@@ -1,0 +1,146 @@
+This program converts a HEX representation of a floating number (Intel and V90) to a floating number.
+
+00 { 72-Byte Prgm }
+01>LBL "FLOAT"
+02 DECM
+03 STO 00
+04 2
+05 31
+06 Y^X
+07 ÷
+08 IP
+09 -1
+10 X<>Y
+11 Y^X
+12 RCL 00
+13 2
+14 31
+15 Y^X
+16 1
+17 -
+18 AND
+19 8388608
+20 ÷
+21 IP
+22 127
+23 -
+24 2
+25 X<>Y
+26 Y^X
+27 ×
+28 RCL 00
+29 8388608
+30 ÷
+31 FP
+32 1
+33 +
+34 ×
+35 .END.
+
+
+This program converts a floating number to the HEX value (Intel and V90)
+Note the floating number must be positive
+
+00 { 64-Byte Prgm }
+01>LBL "HEX"
+02 STO 00
+03 LOG
+04 2
+05 LOG
+06 ÷
+07 X<0?
+08 GTO 00
+09 GTO 01
+10>LBL 00
+11 1
+12 -
+13>LBL 01
+14 IP
+15 STO 00
+16 127
+17 +
+18 8388608
+19 ×
+20 RCL 00
+21 2
+22 RCL 01
+23 Y^X
+24 ÷
+25 FP
+26 8388608
+27 ×
+28 0.5
+29 +
+30 IP
+31 +
+32 HEXM
+33 END
+
+
+This program calculates an investment with fixed monthly instalments
+The instalments are increases once a year by %GR
+It calculates based on compounded interest per month.
+
+NOTE: Use this program with SOLVER
+
+00 { 127-Byte Prgm }
+01>LBL "TMVG"
+02 MVAR "YRS"
+03 MVAR "I%YR"
+04 MVAR "GR"
+05 MVAR "PV"
+06 MVAR "PMT"
+07 MVAR "FV"
+08 RCL "YRS"
+09 12
+10 ×
+11 STO 06
+12 1
+13 RCL "I%YR"
+14 %
+15 12
+16 ÷
+17 +
+18 STO 08
+19 -12
+20 Y^X
+21 STO 07
+22 1
+23 RCL "%GR"
+24 %
+25 +
+26 STO 09
+27 ×
+28 RCL "YRS"
+29 Y^X
+30 +/-
+31 1
+32 +
+33 RCL 07
+34 1
+35 -
+36 ×
+37 1
+38 RCL 09
+39 RCL 07
+40 ×
+41 -
+42 ÷
+43 RCL× "PMT"
+44 RCL 08
+45 RCL 06
+46 Y^X
+47 ×
+48 1
+49 RCL 08
+50 -
+51 ÷
+52 RCL 08
+53 RCL 06
+54 Y^X
+55 RCL× "PV"
+56 ×
+57 +
+58 RCL- "FV"
+59 END
+

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Serializing our workload with strand</title>
+<link rel="stylesheet" type="text/css" href="basic.css">
+</head>
+<body>
+<div class="nav">
+<a href="pg4.html"><img src="prev.png" alt="Prev"></a><a href="pg1.html"><img src="up.png" alt="Up"></a><a href="pg1.html"><img src="home.png" alt="Home"></a><a href="pg6.html"><img src="next.png" alt="Next"></a>
+</div>
+<h1 class="ipsType_pagetitle">A guide to getting started with asio</h1>
+<div class="desc">
+Posted by <strong><a title="" href="http://www.gamedev.net/user/64367-drew_benton/" class=
+"url fn name ___hover___member _hoversetup" id="anonymous_element_3" name=
+"anonymous_element_3"><span>Drew_Benton</span></a></strong>, 31 January 2011 ~ 190,508 views
+</div>
+<br class="clear">
+<div class="entry_content ipsType_textblock ipsPad">
+<strong class="bbc">4. Serializing our workload with strand</strong>
+<br>
+<br>
+There will come a time when we will want to queue work to be done, but the order in which it is done is important. The <a rel=
+"nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/io_service__strand.html">strand</a> class was created for such
+scenarios. The strand class "provides serialised handler execution." This means if we post work1 -&gt; work2 -&gt; work3 through a
+strand, no matter how many worker threads we have, it will be executed in that order. Neat!
+<br>
+<br>
+With great power comes great responsibility though. We must understand the order of handler invocation for the strand class!
+<br>
+<p class="citation">Quote</p>
+<blockquote class="ipsBlockquote built">
+<p>Order of handler invocation
+<br>
+Given:
+<br></p>
+<ul class="bbc">
+<li>a strand object s</li>
+<li>an object a meeting completion handler requirements</li>
+<li>an object a1 which is an arbitrary copy of a made by the implementation</li>
+<li>an object b meeting completion handler requirements</li>
+<li>an object b1 which is an arbitrary copy of b made by the implementation</li>
+</ul>if any of the following conditions are true:
+<br>
+<ul class="bbc">
+<li>s.post(a) happens-before s.post( b )</li>
+<li>s.post(a) happens-before s.dispatch( b ), where the latter is performed outside the strand</li>
+<li>s.dispatch(a) happens-before s.post( b ), where the former is performed outside the strand</li>
+<li>s.dispatch(a) happens-before s.dispatch( b ), where both are performed outside the strand</li>
+</ul>then asio_handler_invoke(a1, &amp;a1) happens-before asio_handler_invoke(b1, &amp;b1).
+<br>
+<br>
+Note that in the following case:
+<br>
+<br>
+async_op_1(..., s.wrap( a ));
+<br>
+async_op_2(..., s.wrap( b ));
+<br>
+the completion of the first async operation will perform s.dispatch( a ), and the second will perform s.dispatch( b ), but the
+order in which those are performed is unspecified. That is, you cannot state whether one happens-before the other. Therefore none
+of the above conditions are met and no ordering guarantee is made.
+</blockquote>
+<br>
+It is absolutely imperative that we understand these conditions when using the strand class. If we do not, we can code a solution
+that has undefined behavior that might work most of the time, but every once in a while, it breaks down and it is extremely hard to
+figure out why! I have done this myself and learned quite a lot from it as a result.
+<br>
+<br>
+Now we can consider an example where we do not use strand. We will remove the output locks on the std::cout object.
+<br>
+<br>
+<strong class="bbc">Example 4a</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;memory&gt;</span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;thread&gt;</span>
+<span class="hl lin">    4 </span><span class="hl ppc">#include &lt;mutex&gt;</span>
+<span class="hl lin">    5 </span><span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl lin">    6 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    7 </span><span class="hl ppc">#include &lt;chrono&gt;</span>
+<span class="hl lin">    8 </span>
+<span class="hl lin">    9 </span>std<span class="hl opt">::</span>mutex global_stream_lock<span class="hl opt">;</span>
+<span class="hl lin">   10 </span>
+<span class="hl lin">   11 </span><span class="hl kwb">void</span> <span class="hl kwd">WorkerThread</span><span class="hl opt">(</span> std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service <span class="hl opt">&gt;</span> io_service <span class="hl opt">)</span>
+<span class="hl lin">   12 </span><span class="hl opt">{</span>
+<span class="hl lin">   13 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   14 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   15 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Thread Start&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   16 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   17 </span>
+<span class="hl lin">   18 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">run</span><span class="hl opt">();</span>
+<span class="hl lin">   19 </span>
+<span class="hl lin">   20 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   21 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   22 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Thread Finish&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   23 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   24 </span><span class="hl opt">}</span>
+<span class="hl lin">   25 </span>
+<span class="hl lin">   26 </span><span class="hl kwb">void</span> <span class="hl kwd">PrintNum</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">)</span>
+<span class="hl lin">   27 </span><span class="hl opt">{</span>
+<span class="hl lin">   28 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   29 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] x: &quot;</span> <span class="hl opt">&lt;&lt;</span> x <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   30 </span><span class="hl opt">}</span>
+<span class="hl lin">   31 </span>
+<span class="hl lin">   32 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class="hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">   33 </span><span class="hl opt">{</span>
+<span class="hl lin">   34 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service <span class="hl opt">&gt;</span> <span class="hl kwd">io_service</span><span class="hl opt">(</span>
+<span class="hl lin">   35 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service
+<span class="hl lin">   36 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   37 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>work <span class="hl opt">&gt;</span> <span class="hl kwd">work</span><span class="hl opt">(</span>
+<span class="hl lin">   38 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">work</span><span class="hl opt">( *</span>io_service <span class="hl opt">)</span>
+<span class="hl lin">   39 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   40 </span>    asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>strand <span class="hl kwd">strand</span><span class="hl opt">( *</span>io_service <span class="hl opt">);</span>
+<span class="hl lin">   41 </span>
+<span class="hl lin">   42 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   43 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span>  std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   44 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] The program will exit when all  work has finished.&quot;</span> <span class="hl opt">&lt;&lt;</span>  std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   45 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   46 </span>
+<span class="hl lin">   47 </span>    std<span class="hl opt">::</span>thread worker_threads<span class="hl opt">[</span><span class="hl num">4</span><span class="hl opt">];</span>
+<span class="hl lin">   48 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">2</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">   49 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   50 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">] =</span> std<span class="hl opt">::</span><span class="hl kwd">thread</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>WorkerThread<span class="hl opt">,</span> io_service <span class="hl opt">) );</span>
+<span class="hl lin">   51 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   52 </span>
+<span class="hl lin">   53 </span>    std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">sleep_for</span><span class="hl opt">(</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">milliseconds</span><span class="hl opt">(</span> <span class="hl num">1000</span> <span class="hl opt">) );</span>
+<span class="hl lin">   54 </span>
+<span class="hl lin">   55 </span><span class="hl slc">//  strand.post( std::bind( &amp;PrintNum, 1 ) );</span>
+<span class="hl lin">   56 </span><span class="hl slc">//  strand.post( std::bind( &amp;PrintNum, 2 ) );</span>
+<span class="hl lin">   57 </span><span class="hl slc">//  strand.post( std::bind( &amp;PrintNum, 3 ) );</span>
+<span class="hl lin">   58 </span><span class="hl slc">//  strand.post( std::bind( &amp;PrintNum, 4 ) );</span>
+<span class="hl lin">   59 </span><span class="hl slc">//  strand.post( std::bind( &amp;PrintNum, 5 ) );</span>
+<span class="hl lin">   60 </span>
+<span class="hl lin">   61 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">1</span> <span class="hl opt">) );</span>
+<span class="hl lin">   62 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">2</span> <span class="hl opt">) );</span>
+<span class="hl lin">   63 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">3</span> <span class="hl opt">) );</span>
+<span class="hl lin">   64 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">4</span> <span class="hl opt">) );</span>
+<span class="hl lin">   65 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">5</span> <span class="hl opt">) );</span>
+<span class="hl lin">   66 </span>
+<span class="hl lin">   67 </span>    work<span class="hl opt">.</span><span class="hl kwd">reset</span><span class="hl opt">();</span>
+<span class="hl lin">   68 </span>
+<span class="hl lin">   69 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">2</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">   70 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   71 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">].</span><span class="hl kwd">join</span><span class="hl opt">();</span>
+<span class="hl lin">   72 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   73 </span>
+<span class="hl lin">   74 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   75 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>[139929731082048] The program will exit when all  work has finished.
+<span class="hl lin">    2 </span>[139929714317056] Thread Start
+<span class="hl lin">    3 </span>[139929705924352] Thread Start
+<span class="hl lin">    4 </span>[[139929705924352] x: 139929714317056] x: 12
+<span class="hl lin">    5 </span>
+<span class="hl lin">    6 </span>[139929714317056] x: 3
+<span class="hl lin">    7 </span>[139929714317056] x: 4
+<span class="hl lin">    8 </span>[139929714317056] x: 5
+<span class="hl lin">    9 </span>[139929705924352] Thread Finish
+<span class="hl lin">   10 </span>[139929714317056] Thread Finish
+</pre>
+
+This is pretty much expected. Since we no longer lock the std::cout object and have multiple threads writing to it, the final
+output gets combined. Depending on how many worker threads we have and how many PC cores as well, the output might look a little
+different and even might show up correct! Conceptually though, we will know the correct output does not mean anything here since we
+are not properly synchronizing access to a global shared object!
+<br>
+<br>
+Now, let us check out the next example, simply comment out all of the io_service-&gt;post and uncomment the strand.post function
+calls. Here is one output of the strand program.
+<br>
+<br>
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>[140355742205760] The program will exit when all  work has finished.
+<span class="hl lin">    2 </span>[140355725440768] Thread Start
+<span class="hl lin">    3 </span>[140355717048064] Thread Start
+<span class="hl lin">    4 </span>[140355725440768] x: 1
+<span class="hl lin">    5 </span>[140355725440768] x: 2
+<span class="hl lin">    6 </span>[140355725440768] x: 3
+<span class="hl lin">    7 </span>[140355725440768] x: 4
+<span class="hl lin">    8 </span>[140355725440768] x: 5
+<span class="hl lin">    9 </span>[140355725440768] Thread Finish
+<span class="hl lin">   10 </span>[140355717048064] Thread Finish
+</pre>
+
+No matter how many times we run the program, we should see a clean output each time for the x outputs. This is because the strand
+object is correctly serializing the event processing to only one thread at a time. It is very important that we notice that strand
+does not serialize work through only one thread either. If we check the previous output once again, more than one thread was used.
+So work will still execute serially, but it will execute through whichever worker thread is available at the time. We cannot
+program with the incorrect assumption the same thread will actually process all of the work! If we do, we will have bugs that will
+come back to bite us.
+<br>
+<br>
+As mentioned before, in the past I had used strand the wrong way without realizing it and it caused all sorts of hard to find
+problems. Let us now take a look at such an example that is syntactically correct but logically incorrect as per our expectations.
+<br>
+<br>
+<strong class="bbc">Example 4b</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;memory&gt;</span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;thread&gt;</span>
+<span class="hl lin">    4 </span><span class="hl ppc">#include &lt;mutex&gt;</span>
+<span class="hl lin">    5 </span><span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl lin">    6 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    7 </span><span class="hl ppc">#include &lt;chrono&gt;</span>
+<span class="hl lin">    8 </span>
+<span class="hl lin">    9 </span>std<span class="hl opt">::</span>mutex global_stream_lock<span class="hl opt">;</span>
+<span class="hl lin">   10 </span>
+<span class="hl lin">   11 </span><span class="hl kwb">void</span> <span class="hl kwd">WorkerThread</span><span class="hl opt">(</span> std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service <span class="hl opt">&gt;</span> io_service <span class="hl opt">)</span>
+<span class="hl lin">   12 </span><span class="hl opt">{</span>
+<span class="hl lin">   13 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   14 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot;] Thread Start&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   15 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   16 </span>
+<span class="hl lin">   17 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">run</span><span class="hl opt">();</span>
+<span class="hl lin">   18 </span>
+<span class="hl lin">   19 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   20 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   21 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] Thread Finish&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   22 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   23 </span><span class="hl opt">}</span>
+<span class="hl lin">   24 </span>
+<span class="hl lin">   25 </span><span class="hl kwb">void</span> <span class="hl kwd">PrintNum</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">)</span>
+<span class="hl lin">   26 </span><span class="hl opt">{</span>
+<span class="hl lin">   27 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   28 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] x: &quot;</span> <span class="hl opt">&lt;&lt;</span> x <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   29 </span><span class="hl opt">}</span>
+<span class="hl lin">   30 </span>
+<span class="hl lin">   31 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class="hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">   32 </span><span class="hl opt">{</span>
+<span class="hl lin">   33 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service <span class="hl opt">&gt;</span> <span class="hl kwd">io_service</span><span class="hl opt">(</span>
+<span class="hl lin">   34 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service
+<span class="hl lin">   35 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   36 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>work <span class="hl opt">&gt;</span> <span class="hl kwd">work</span><span class="hl opt">(</span>
+<span class="hl lin">   37 </span>        <span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">work</span><span class="hl opt">( *</span>io_service <span class="hl opt">)</span>
+<span class="hl lin">   38 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   39 </span>    asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>strand <span class="hl kwd">strand</span><span class="hl opt">( *</span>io_service <span class="hl opt">);</span>
+<span class="hl lin">   40 </span>
+<span class="hl lin">   41 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   42 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span>  std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">get_id</span><span class="hl opt">()</span>
+<span class="hl lin">   43 </span>        <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] The program will exit when all  work has finished.&quot;</span> <span class="hl opt">&lt;&lt;</span>  std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   44 </span>    global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   45 </span>
+<span class="hl lin">   46 </span>    std<span class="hl opt">::</span>thread worker_threads<span class="hl opt">[</span><span class="hl num">4</span><span class="hl opt">];</span>
+<span class="hl lin">   47 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">4</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">   48 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   49 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">] =</span> std<span class="hl opt">::</span><span class="hl kwd">thread</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>WorkerThread<span class="hl opt">,</span> io_service <span class="hl opt">) );</span>
+<span class="hl lin">   50 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   51 </span>
+<span class="hl lin">   52 </span>    std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">sleep_for</span><span class="hl opt">(</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">milliseconds</span><span class="hl opt">(</span> <span class="hl num">100</span> <span class="hl opt">) );</span>
+<span class="hl lin">   53 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> strand<span class="hl opt">.</span><span class="hl kwd">wrap</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">1</span> <span class="hl opt">) ) );</span>
+<span class="hl lin">   54 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> strand<span class="hl opt">.</span><span class="hl kwd">wrap</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">2</span> <span class="hl opt">) ) );</span>
+<span class="hl lin">   55 </span>
+<span class="hl lin">   56 </span>    std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">sleep_for</span><span class="hl opt">(</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">milliseconds</span><span class="hl opt">(</span> <span class="hl num">100</span> <span class="hl opt">) );</span>
+<span class="hl lin">   57 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> strand<span class="hl opt">.</span><span class="hl kwd">wrap</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">3</span> <span class="hl opt">) ) );</span>
+<span class="hl lin">   58 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> strand<span class="hl opt">.</span><span class="hl kwd">wrap</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">4</span> <span class="hl opt">) ) );</span>
+<span class="hl lin">   59 </span>
+<span class="hl lin">   60 </span>    std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">sleep_for</span><span class="hl opt">(</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">milliseconds</span><span class="hl opt">(</span> <span class="hl num">100</span> <span class="hl opt">) );</span>
+<span class="hl lin">   61 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> strand<span class="hl opt">.</span><span class="hl kwd">wrap</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">5</span> <span class="hl opt">) ) );</span>
+<span class="hl lin">   62 </span>    io_service<span class="hl opt">-&gt;</span><span class="hl kwd">post</span><span class="hl opt">(</span> strand<span class="hl opt">.</span><span class="hl kwd">wrap</span><span class="hl opt">(</span> std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">( &amp;</span>PrintNum<span class="hl opt">,</span> <span class="hl num">6</span> <span class="hl opt">) ) );</span>
+<span class="hl lin">   63 </span>
+<span class="hl lin">   64 </span>    work<span class="hl opt">.</span><span class="hl kwd">reset</span><span class="hl opt">();</span>
+<span class="hl lin">   65 </span>
+<span class="hl lin">   66 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class="hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> <span class="hl num">4</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">   67 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   68 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">].</span><span class="hl kwd">join</span><span class="hl opt">();</span>
+<span class="hl lin">   69 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   70 </span>
+<span class="hl lin">   71 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   72 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>[139730462730048] The program will exit when all  work has finished.
+<span class="hl lin">    2 </span>[139730445965056] Thread Start
+<span class="hl lin">    3 </span>[139730429179648] Thread Start
+<span class="hl lin">    4 </span>[139730420786944] Thread Start
+<span class="hl lin">    5 </span>[139730437572352] Thread Start
+<span class="hl lin">    6 </span>[139730429179648] x: 1
+<span class="hl lin">    7 </span>[139730445965056] x: 2
+<span class="hl lin">    8 </span>[139730437572352] x: 4
+<span class="hl lin">    9 </span>[139730420786944] x: 3
+<span class="hl lin">   10 </span>[139730429179648] x: 6
+<span class="hl lin">   11 </span>[139730429179648] x: 5
+<span class="hl lin">   12 </span>[139730429179648] Thread Finish
+<span class="hl lin">   13 </span>[139730445965056] Thread Finish
+<span class="hl lin">   14 </span>[139730437572352] Thread Finish
+<span class="hl lin">   15 </span>[139730420786944] Thread Finish
+</pre>
+
+If we run this program quite a few times, we should see the expected 1, 2, 3, 4, 5, 6 output. However, every so often, we might see
+2, 1, 3, 4, 5, 6 or some other variation where the events are switched. Sometimes we have to run a lot to get this to happen, while
+other times it might happen more frequently. The output remains clean though, but the order is just not as expected. This is
+because the work we are passing is guaranteed to be executed serially, but there is no guarantee to which the order of the work
+actually takes place as a result of the API functions we are using!
+<br>
+<br>
+So if order is important, we have to go through the strand object API itself. If order is not important, then we can post across
+the io_service object and wrap our handler through the strand. It might seem obvious now, but if we were just getting started with
+this stuff on our own, it would be easy to misunderstand these basic concepts. The type of work we are posting will ultimately
+determine which interface we want to use as both are really useful. We will see more examples of the strand <a rel=
+"nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/io_service__strand/wrap.html">wrap</a> member function being
+used in the future.
+<br>
+<br>
+That pretty much covers the strand object. It is very powerful as it allows us to have synchronization without explicit locking.
+This is absolutely a must have feature when working with multi-threaded systems and maintaining efficiency across the board.
+<br>
+<br>
+We almost have enough core concepts covered to move on into the networking aspect of the asio library. The asio
+library is huge with a ton of awesome features!
+<br>
+<hr>
+<div class="nav">
+<a accesskey="p" href="pg4.html"><img src="prev.png" alt="Prev"></a><a accesskey="u" href="pg1.html"><img src="up.png" alt="Up"></a><a accesskey="h" href="pg1.html"><img src="home.png" alt="Home"></a><a accesskey="n" href="pg6.html"><img src="next.png" alt="Next"></a>
+</div>
+</div>
+</body>
+</html>

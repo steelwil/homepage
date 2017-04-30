@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>The basics of io_service</title>
+<link rel="stylesheet" type="text/css" href="basic.css">
+</head>
+<body>
+<div class="nav">
+<a href="pg1.html"><img src="prev.png" alt="Prev"></a><a href="pg1.html"><img src="up.png" alt="Up"></a><a href="pg1.html"><img src="home.png" alt="Home"></a><a href="pg3.html"><img src="next.png" alt="Next"></a>
+</div>
+<h1 class="ipsType_pagetitle">A guide to getting started with asio</h1>
+<div class="desc">
+Posted by <strong><a title="" href="http://www.gamedev.net/user/64367-drew_benton/" class=
+"url fn name ___hover___member _hoversetup" id="anonymous_element_3" name=
+"anonymous_element_3"><span>Drew_Benton</span></a></strong>, 31 January 2011 ~ 190,508 views
+</div>
+<br>
+<div class="entry_content ipsType_textblock ipsPad">
+<strong class="bbc">1. The basics of io_service</strong>
+<br>
+<br>
+The core object of asio is <a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/io_service.html">io_service</a>. This object is like the brain
+and the heart of the library. We will start out with a simple example to get acquainted with it. In this example, we will be
+calling the <a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/io_service/run.html">run</a> member function. If we
+check the function's documentation, "the run() function blocks until all work has finished and there are no more handlers to be
+dispatched, or until the io_service has been stopped."
+<br>
+<br>
+<strong class="bbc">Example 1a</strong>
+<pre class="hl">
+<span class="hl lin">    1 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    3 </span>
+<span class="hl lin">    4 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class=
+"hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class=
+"hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">    5 </span><span class="hl opt">{</span>
+<span class="hl lin">    6 </span>    boost<span class="hl opt">::</span>asio<span class=
+"hl opt">::</span>io_service io_service<span class="hl opt">;</span>
+<span class="hl lin">    7 </span>
+<span class="hl lin">    8 </span>    io_service<span class="hl opt">.</span><span class="hl kwd">run</span><span class=
+"hl opt">();</span>
+<span class="hl lin">    9 </span>
+<span class="hl lin">   10 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class=
+"hl str">"Do you reckon this line displays?"</span> <span class="hl opt">&lt;&lt;</span> std<span class=
+"hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   11 </span>
+<span class="hl lin">   12 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   13 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>Do you reckon this line displays?
+</pre>
+
+Based on what the docs say, we should expect the line of text to be displayed, right? I mean we are not really giving it
+anything to do explicitly, so unless something goes on behind the scenes we do not know of, the function should not block. If we
+run the program, we get the expected results; we see the line of text.
+<br>
+<br>
+This example might have already set alarms off for some readers. <em class="bbc">What if our program runs out of work? That is not
+useful at all; asio is definitely not for me!</em> Not so fast partner, let us not get ahead of ourselves so soon. The
+developers of asio thought about this as well. To address this issue, they created a <a rel="nofollow external" title=
+"External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/io_service__work.html">work</a> class. The work class
+is a "class to inform the io_service when it has work to do." In other words, as long as an io_service has a work object associated
+with it, it will never run out of stuff to do. To test this, consider the next example.
+<br>
+<br>
+<strong class="bbc">Example 1b</strong>
+<pre class="hl">
+<span class="hl lin">    1 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    3 </span>
+<span class="hl lin">    4 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class=
+"hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class=
+"hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">    5 </span><span class="hl opt">{</span>
+<span class="hl lin">    6 </span>    boost<span class="hl opt">::</span>asio<span class=
+"hl opt">::</span>io_service io_service<span class="hl opt">;</span>
+<span class="hl lin">    7 </span>    boost<span class="hl opt">::</span>asio<span class="hl opt">::</span>io_service<span class=
+"hl opt">::</span>work <span class="hl kwd">work</span><span class="hl opt">(</span> io_service <span class="hl opt">);</span>
+<span class="hl lin">    8 </span>
+<span class="hl lin">    9 </span>    io_service<span class="hl opt">.</span><span class="hl kwd">run</span><span class=
+"hl opt">();</span>
+<span class="hl lin">   10 </span>
+<span class="hl lin">   11 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class=
+"hl str">"Do you reckon this line displays?"</span> <span class="hl opt">&lt;&lt;</span> std<span class=
+"hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   12 </span>
+<span class="hl lin">   13 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   14 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>
+</pre>
+
+If we run the example, we will get the expected results once again. We do not see the text and the program does not quit.
+Unfortunately, we now have no way of performing a graceful exit with the tools we know of now. There are ways around this, but we
+will not cover them until later since we are only getting our feet wet for the moment.
+<br>
+<br>
+From these examples, we can already see two different design approaches that are possible with asio. There are many, many
+more! What if we do not like this idea of having to block a thread for doing work? What if we want the ability to do work whenever
+and wherever we want? Is this even possible? The answer is yes!
+<br>
+<br>
+In the next example, we will simply simulate a loop and call the <a rel="nofollow external" title="External link" class="bbc_url"
+href="http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/io_service/poll/overload1.html">poll</a> function of the
+io_service. The poll function "runs the io_service object's event processing loop to execute ready handlers."
+<br>
+<br>
+<strong class="bbc">Example 1c</strong>
+<pre class="hl">
+<span class="hl lin">    1 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    3 </span>
+<span class="hl lin">    4 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class=
+"hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class=
+"hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">    5 </span><span class="hl opt">{</span>
+<span class="hl lin">    6 </span>    boost<span class="hl opt">::</span>asio<span class=
+"hl opt">::</span>io_service io_service<span class="hl opt">;</span>
+<span class="hl lin">    7 </span>
+<span class="hl lin">    8 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class=
+"hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class=
+"hl opt">&lt;</span> <span class="hl num">42</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">    9 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   10 </span>        io_service<span class="hl opt">.</span><span class="hl kwd">poll</span><span class=
+"hl opt">();</span>
+<span class="hl lin">   11 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class=
+"hl str">"Counter: "</span> <span class="hl opt">&lt;&lt;</span> x <span class="hl opt">&lt;&lt;</span> std<span class=
+"hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   12 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   13 </span>
+<span class="hl lin">   14 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   15 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>Counter: 0
+<span class="hl lin">    2 </span>Counter: 1
+<span class="hl lin">    3 </span>Counter: 2
+<span class="hl lin">      </span>...
+<span class="hl lin">      </span>...
+<span class="hl lin">   41 </span>Counter: 40
+<span class="hl lin">   42 </span>Counter: 41
+</pre>
+
+If we run the example, we will see 42 lines worth of text outputted to the console and then the program exits. What if we had
+a work object assigned to the io_service? Would the behavior change?
+<br>
+<br>
+<strong class="bbc">Example 1d</strong>
+<pre class="hl">
+<span class="hl lin">    1 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    3 </span>
+<span class="hl lin">    4 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class=
+"hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class=
+"hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">    5 </span><span class="hl opt">{</span>
+<span class="hl lin">    6 </span>    boost<span class="hl opt">::</span>asio<span class=
+"hl opt">::</span>io_service io_service<span class="hl opt">;</span>
+<span class="hl lin">    7 </span>    boost<span class="hl opt">::</span>asio<span class="hl opt">::</span>io_service<span class=
+"hl opt">::</span>work <span class="hl kwd">work</span><span class="hl opt">(</span> io_service <span class="hl opt">);</span>
+<span class="hl lin">    8 </span>
+<span class="hl lin">    9 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class=
+"hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class=
+"hl opt">&lt;</span> <span class="hl num">42</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">   10 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   11 </span>        io_service<span class="hl opt">.</span><span class="hl kwd">poll</span><span class=
+"hl opt">();</span>
+<span class="hl lin">   12 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class=
+"hl str">"Counter: "</span> <span class="hl opt">&lt;&lt;</span> x <span class="hl opt">&lt;&lt;</span> std<span class=
+"hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   13 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   14 </span>
+<span class="hl lin">   15 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   16 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>Counter: 0
+<span class="hl lin">    2 </span>Counter: 1
+<span class="hl lin">    3 </span>Counter: 2
+<span class="hl lin">      </span>...
+<span class="hl lin">      </span>...
+<span class="hl lin">   41 </span>Counter: 40
+<span class="hl lin">   42 </span>Counter: 41
+</pre>
+
+When we run this program, we get the exact same output and results as before. This is because the poll function will not
+block while there is more work to do. It simply executes the current set of work and then returns. In a real program, the loop
+would be based on some other event, but for the sake of simplicity, we are just using a fixed one.
+<br>
+<br>
+This example speaks volumes to how the work class operates under the hood. Imagine for a second if the work object supplied the
+io_service object with work in a manner that new work was added from inside the work handler invoked by the io_service. In that
+case, poll should never run out of work to do since new work would always be added. However, this is clearly not the case. The work
+is added outside the handler so everything will work as intended.
+<br>
+<br>
+Great! We can now choose between using the run and poll functions depending on how we need our program setup. To add more
+flexibility, the <a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/io_service/run_one.html">run_one</a> and <a rel=
+"nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/io_service/poll_one.html">poll_one</a> functions were created.
+These allow programmers to fine tune their programs as needed. At this point we need to step back and consider what we know so far.
+To get the io_service working for us, we have to use the run or poll family of functions. Run will block and wait for work if we
+assign it a work object while the poll function does not. In essence, the names of the functions match their functionality.
+<br>
+<br>
+There is one more little loose end we need to tie up. What if we want a work object removed from an io_service? Looking through the
+docs, there does not seem to be a function provided to do this. In order to achieve this functionality, we must make use of a
+pointer to a work object instead. Keeping with the boost library, we will use <a rel="nofollow external" title="External link"
+class="bbc_url" href="http://www.boost.org/doc/libs/1_60_0/libs/smart_ptr/shared_ptr.htm">shared_ptr</a>, a smart pointer class.
+<br>
+<br>
+<strong class="bbc">Example 1e</strong>
+<pre class="hl">
+<span class="hl lin">    1 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;shared_ptr.hpp&gt;</span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    4 </span>
+<span class="hl lin">    5 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class=
+"hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class=
+"hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">    6 </span><span class="hl opt">{</span>
+<span class="hl lin">    7 </span>    boost<span class="hl opt">::</span>asio<span class=
+"hl opt">::</span>io_service io_service<span class="hl opt">;</span>
+<span class="hl lin">    8 </span>    boost<span class="hl opt">::</span>shared_ptr<span class=
+"hl opt">&lt;</span> boost<span class="hl opt">::</span>asio<span class="hl opt">::</span>io_service<span class=
+"hl opt">::</span>work <span class="hl opt">&gt;</span> <span class="hl kwd">work</span><span class="hl opt">(</span>
+<span class="hl lin">    9 </span>        <span class="hl kwa">new</span> boost<span class="hl opt">::</span>asio<span class=
+"hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">work</span><span class=
+"hl opt">(</span> io_service <span class="hl opt">)</span>
+<span class="hl lin">   10 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   11 </span>
+<span class="hl lin">   12 </span>    work<span class="hl opt">.</span><span class="hl kwd">reset</span><span class=
+"hl opt">();</span>
+<span class="hl lin">   13 </span>
+<span class="hl lin">   14 </span>    io_service<span class="hl opt">.</span><span class="hl kwd">run</span><span class=
+"hl opt">();</span>
+<span class="hl lin">   15 </span>
+<span class="hl lin">   16 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class=
+"hl str">"Do you reckon this line displays?"</span> <span class="hl opt">&lt;&lt;</span> std<span class=
+"hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   17 </span>
+<span class="hl lin">   18 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   19 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>Do you reckon this line displays?
+</pre>
+
+If we run the program, we will see the line of text displayed. This effectively shows us how we can remove a work object from
+an io_service. This type of functionality is important in the case we want to gracefully <em class="bbc">finish</em> all pending
+work but not <em class="bbc">stop</em> it prematurely. There is a caveat to this that will be covered later though.
+<br>
+<br>
+Now that we know how to drive the io_service with one thread, we need to figure out what would be required for more threads. The
+io_service docs page tell us that "multiple threads may call the run() function to set up a pool of threads from which the
+io_service may execute handlers. All threads that are waiting in the pool are equivalent and the io_service may choose any one of
+them to invoke a handler." Sounds easy enough right? Since the boost library also provides a <a rel="nofollow external" title=
+"External link" class="bbc_url" href="http://www.boost.org/doc/libs/1_60_0/doc/html/thread.html">thread library</a>, we will make
+use of that for the next example.
+<br>
+<br>
+<strong class="bbc">Example 1f</strong>
+<pre class="hl">
+<span class="hl lin">    1 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">    2 </span><span class="hl slc">//#include &lt;boost/shared_ptr.hpp&gt;</span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;memory&gt;</span>
+<span class="hl lin">    4 </span><span class="hl ppc">#include &lt;thread&gt;</span>
+<span class="hl lin">    5 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    6 </span>
+<span class="hl lin">    7 </span>boost<span class="hl opt">::</span>asio<span class=
+"hl opt">::</span>io_service io_service<span class="hl opt">;</span>
+<span class="hl lin">    8 </span>
+<span class="hl lin">    9 </span><span class="hl kwb">void</span> <span class="hl kwd">WorkerThread</span><span class=
+"hl opt">()</span>
+<span class="hl lin">   10 </span><span class="hl opt">{</span>
+<span class="hl lin">   11 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class=
+"hl str">"Thread Start</span><span class="hl esc">\n</span><span class="hl str">"</span><span class="hl opt">;</span>
+<span class="hl lin">   12 </span>    io_service<span class="hl opt">.</span><span class="hl kwd">run</span><span class=
+"hl opt">();</span>
+<span class="hl lin">   13 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class=
+"hl str">"Thread Finish</span><span class="hl esc">\n</span><span class="hl str">"</span><span class="hl opt">;</span>
+<span class="hl lin">   14 </span><span class="hl opt">}</span>
+<span class="hl lin">   15 </span>
+<span class="hl lin">   16 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class=
+"hl opt">(</span> <span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span> <span class=
+"hl opt">*</span> argv<span class="hl opt">[] )</span>
+<span class="hl lin">   17 </span><span class="hl opt">{</span>
+<span class="hl lin">   18 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> boost<span class=
+"hl opt">::</span>asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>work <span class=
+"hl opt">&gt;</span> <span class="hl kwd">work</span><span class="hl opt">(</span>
+<span class="hl lin">   19 </span>        <span class="hl kwa">new</span> boost<span class="hl opt">::</span>asio<span class=
+"hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">work</span><span class=
+"hl opt">(</span> io_service <span class="hl opt">)</span>
+<span class="hl lin">   20 </span>        <span class="hl opt">);</span>
+<span class="hl lin">   21 </span>
+<span class="hl lin">   22 </span>    std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class=
+"hl str">"Press [return] to exit."</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class=
+"hl opt">;</span>
+<span class="hl lin">   23 </span>
+<span class="hl lin">   24 </span>    std<span class="hl opt">::</span>thread worker_threads<span class=
+"hl opt">[</span><span class="hl num">4</span><span class="hl opt">];</span>
+<span class="hl lin">   25 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class=
+"hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class=
+"hl opt">&lt;</span> <span class="hl num">4</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">   26 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   27 </span>        worker_threads<span class="hl opt">[</span>x<span class=
+"hl opt">] =</span> std<span class="hl opt">::</span><span class="hl kwd">thread</span><span class=
+"hl opt">(</span>WorkerThread<span class="hl opt">);</span>
+<span class="hl lin">   28 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   29 </span>
+<span class="hl lin">   30 </span>    std<span class="hl opt">::</span>cin<span class="hl opt">.</span><span class=
+"hl kwd">get</span><span class="hl opt">();</span>
+<span class="hl lin">   31 </span>
+<span class="hl lin">   32 </span>    io_service<span class="hl opt">.</span><span class="hl kwd">stop</span><span class=
+"hl opt">();</span>
+<span class="hl lin">   33 </span>
+<span class="hl lin">   34 </span>    <span class="hl kwa">for</span><span class="hl opt">(</span> <span class=
+"hl kwb">int</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class=
+"hl opt">&lt;</span> <span class="hl num">4</span><span class="hl opt">; ++</span>x <span class="hl opt">)</span>
+<span class="hl lin">   35 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   36 </span>        worker_threads<span class="hl opt">[</span>x<span class="hl opt">].</span><span class=
+"hl kwd">join</span><span class="hl opt">();</span>
+<span class="hl lin">   37 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   38 </span>
+<span class="hl lin">   39 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   40 </span><span class="hl opt">}</span>
+</pre>
+
+<strong>Output</strong>
+<pre class="hl"><span class="hl lin">    1 </span>Press [return] to exit.
+<span class="hl lin">    2 </span>Thread Start
+<span class="hl lin">    3 </span>Thread Start
+<span class="hl lin">    4 </span>Thread Start
+<span class="hl lin">    5 </span>Thread Start
+<span class="hl lin">    6 </span>
+<span class="hl lin">    7 </span>Thread Finish
+<span class="hl lin">    8 </span>Thread Finish
+<span class="hl lin">    9 </span>Thread Finish
+<span class="hl lin">   10 </span>Thread Finish
+</pre>
+
+This example introduces the <a rel="nofollow external" title="External link" class="bbc_url" href=
+"http://think-async.com/Asio/asio-1.11.0/doc/asio/reference/io_service/stop.html">stop</a> member function. The stop
+function will signal the io_service that all work should be stopped, so after the current batch of work finishes, no more work will
+be done. Another change in this example is the io_service object has now been made global. This was only to keep things simple as
+more complex mechanisms have to be used otherwise. If we run the program, we get the 4 thread start messages on the console and
+after we hit return, we get the four thread finish messages, as expected.
+<br>
+<br>
+What should really stand out is how simple and easy it is to make our threaded programs scale. By simply adding more worker
+threads, we can support more and more concurrency for processing work through the io_service object. As mentioned before, if we had
+associated a work object with the io_service and wanted to let all queued work finish, we would not call stop but rather destroy
+the work object. Care has to be taken though. If we want all work to finish but keep giving the io_service more things to do, then
+it will never exit! In that case, at some point, we would want to call the stop function to ensure the system actually stops.
+<br>
+<br>
+Now that we have an idea of the different ways to drive the io_service object, we can move on to the next set of topics we have to
+learn before being able to actually do the real work.
+<hr>
+<div class="nav">
+<a accesskey="p" href="pg1.html"><img src="prev.png" alt="Prev"></a><a accesskey="u" href="pg1.html"><img src="up.png" alt="Up"></a><a accesskey="h" href="pg1.html"><img src="home.png" alt="Home"></a><a accesskey="n" href="pg3.html"><img src="next.png" alt="Next"></a>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+Reference: http://www.gamedev.net/blog/950/entry-2249317-a-guide-to-getting-started-with-boostasio/?st=20&pg=1
+Posted by: Drew_Benton
+
+==To Compile==
+make 7c
+./7b
+./7b > 7b.out
+
+==astyle==
+astyle --style=allman -U -H -p -f -s4 *.cpp *.h
+
+==To highlight code for html==
+highlight -d html -l -t4 -sedit-msvs2008  *.cpp
+highlight -d html -l -t4 -Stxt -sedit-msvs2008 *.out
+
+==To update the code to use C++11 features==
+sed -i -e 's/boost::bind/std::bind/' *.cpp
+there seems to be a problem with std::bind, boost::bind however works
+
+

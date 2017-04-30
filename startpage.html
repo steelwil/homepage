@@ -1,14 +1,16 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>StartPage</title>
 <style type="text/css">
 /*<![CDATA[*/
- body {
+body {
   background-color: #000000;
- }
- table {
+}
+
+table {
     border: 0px;
     width: 100%;
     background-color: #080808;
@@ -44,54 +46,74 @@
  td.c14 {background-color: #EBEBEB}
  td.c13 {background-color: #E1E1E1}
  td.c12 {background-color: #D7D7D7}
- td.c11 {background-color: #003C00; width: 4%}
- td.c10 {background-color: #003200; width: 4%}
- td.c9 {background-color: #002800; width: 4%}
- td.c8 {background-color: #001E00; width: 4%}
- td.c7 {background-color: #000A00; width: 4%}
+ td.c11 {background-color: #003C00; width: 3%}
+ td.c10 {background-color: #003200; width: 3%}
+ td.c9 {background-color: #002800; width: 3%}
+ td.c8 {background-color: #001E00; width: 3%}
+ td.c7 {background-color: #000A00; width: 3%}
  td.c6 {background-color: #FFFFFF}
- td.c5 {background-color: #000000; width: 4%}
- td.c4 {background-color: #0A0A0A; width: 4%}
- td.c3 {background-color: #141414; width: 4%}
- td.c2 {background-color: #1E1E1E; width: 4%}
- td.c1 {background-color: #282828; width: 4%}
+ td.c5 {background-color: #000000; width: 3%}
+ td.c4 {background-color: #0A0A0A; width: 3%}
+ td.c3 {background-color: #141414; width: 3%}
+ td.c2 {background-color: #1E1E1E; width: 3%}
+ td.c1 {background-color: #282828; width: 3%}
+
+/* adjustments for small screens */
+@media all and (max-width: 767px) {
+    div.verses {
+        display: none;
+    }
+    .c1, .c2, .c3, .c4, .c5, .c7, .c8, .c9, .c10,
+    .c11, .c12, .c13, .c14, .c15, .c16, .c17, .c18, .c19, .c20,
+    .c21, .c22, .c23, .c24, .c25, .c26, .c27, .c28, .c29, .c30,
+    .c31, .c32, .c33, .c34, .c35, .c36, .c37, .c38, .c39, .c40
+    {
+        display: none;
+    }
+}
 /*]]>*/
 </style></head><body>
-<table summary="test pattern">
+<table>
 <tbody><tr>
-<td class="c1" style="width: 3%;">&nbsp;</td>
-<td class="c2" style="width: 3%;">&nbsp;</td>
-<td class="c3" style="width: 3%;">&nbsp;</td>
-<td class="c4" style="width: 3%;">&nbsp;</td>
-<td class="c5" style="width: 3%;">&nbsp;</td>
-<td class="c6" rowspan="4" style="width: 60%;">
+<td class="c1">&nbsp;</td>
+<td class="c2">&nbsp;</td>
+<td class="c3">&nbsp;</td>
+<td class="c4">&nbsp;</td>
+<td class="c5">&nbsp;</td>
+<td class="c6" rowspan="4">
 <p>
-| <a href="http://mittalsteelsa/pages/default.aspx">ArcelorMittal</a>
-| <a href="http://mittalsteelsa/sites/im/vdb/pas/default.aspx">MES &amp; PAS COE</a>
+| <a href="https://arcelormittal.sharepoint.com/">My ArcelorMittal</a>
+| <a href="http://156.8.221.101/MES/Content/MES/Default.aspx">MES</a>
 | <a href="http://whitepages/">WhitePages</a>
-| <a href="https://za.mail.arcelormittal.com/">Outlook Mail</a>
+| <a href="http://outlook.com/owa/ArcelorMittal.com">Outlook Mail</a>
+| <a href="https://arcelormittal.lms.crossknowledge.com/interfaces/login.php">Online Campus</a>
 |</p>
 <p>
-| <a href="http://156.8.227.57/ProjectServer/lgnps.asp">EPM</a>
-| <a href="http://vdb-msxx-util/">vdb-msxx-util</a>
+| <a href="http://156.8.221.101/ProjectReporting/Content/Projects/StandardView.aspx">PMO</a>
+| <a href="http://156.8.221.101:82/MESReporting/Content/MES/ServiceCenter/Incidents.aspx">Incidents</a>
 | <a href="https://156.8.206.103:8060/LoginPage.do">OpManager</a>
 |</p>
 <p>
 | <a href="http://156.8.144.206:8080/sc/index.do">Service Manager SC</a>
 | <a href="http://156.8.144.206:8080/sc/ess.do">Service Manager ESS</a>
+| <a href="http://arcelormittalsa.iscor.com/sites/im/vdb/pas/Lists/Steel%20Making%20Change%20Requests/AllItems.aspx">SM Changes</a>
 |</p>
 <p>
-| <a href="http://156.8.221.57/">Steel Making</a>
-| <a href="http://156.8.221.57/wiki/">Wiki</a>
+| <a href="http://156.8.221.101:84/SM/Content/SM/OSM/Default.aspx?OSM">Steel Making</a>
+| <a href="http://156.8.206.104/wiki/">Wiki</a>
 | <a href="http://156.8.221.122/">Git Repository</a>
-| <a href="http://156.8.221.57/Reports/Pages/Folder.aspx">Report Manager</a>
+| <a href="http://156.8.221.101/Reports/Pages/Folder.aspx?ItemPath=%2fSM&amp;ViewMode=Detail">Report Manager</a>
 |</p>
 <p>
 | <a href="http://www.google.co.za/">Google Search</a>
+| <a href="https://groups.google.com/forum/#!overview">Google Groups</a>
 | <a href="http://en.wikipedia.org/wiki/Special:Search">Wikipedia</a>
+| <a href="https://www.facebook.com/home.php">facebook</a>
+| <a href="https://plus.google.com/">Google+</a>
 |</p>
 <p>
 | <a href="http://www.iol.co.za/">IOL</a>
+| <a href="http://www.dailymail.co.uk/">Daily Mail</a>
 | <a href="http://lxer.com/">LXer</a>
 | <a href="http://linuxtoday.com/">Linux Today</a>
 | <a href="http://distrowatch.com/">DistroWatch</a>
@@ -99,37 +121,39 @@
 |</p>
 <p>
 | <a href="http://www.ubuntu.com/">Ubuntu</a>
-| <a href="http://www.ubuntuforums.org/">Ubuntu Fourum</a>
-| <a href="http://freecode.com/">Free(code)</a>
-| <a href="http://sourceforge.net/directory/">SourceForge</a>
+| <a href="https://github.com/steelwil">GitHub</a>
+| <a href="https://c9.io/steelwil/">Cloud9</a>
 |</p>
 <p>
-| <a href="http://www.wxwidgets.org/">wxWidgets</a>
-| <a href="http://msysgit.github.com/">Git</a>
-| <a href="http://www.codeplex.com/sourcegrid/">sourcegrid</a>
+| <a href="https://docs.microsoft.com/en-us/dotnet/">.NET Documentation</a>
+| <a href="https://www.microsoft.com/net/core">.NET Core</a>
+| <a href="https://www.asp.net/core">ASP.NET Core</a>
+| <a href="https://mva.microsoft.com/">MVA</a>
+|</p>
+<p>
+| <a href="http://www.boost.org/">Boost</a>
+| <a href="https://think-async.com/">Asio</a>
+| <a href="http://www.cplusplus.com/">cplusplus</a>
+| <a href="https://git-for-windows.github.io/">Git</a>
 | <a href="http://www.codeproject.com/">CodeProject</a>
 |</p>
 <p>
 | <a href="http://www.mozilla.com/">Mozilla</a>
-| <a href="http://www.documentfoundation.org/download/">LibreOffice</a>
+| <a href="http://www.libreoffice.org/">LibreOffice</a>
 | <a href="https://netbank.nedsecure.co.za/">Banking</a>
 |</p>
 <p>
-| <a href="http://www.gnpcb.org/esv/">ESV Bible</a>
-| <a href="http://www.frog.za.net/">Home Page</a>
+| <a href="http://www.esvbible.org/">ESV Bible</a>
+| <a href="http://www.frog.net.za/">Home Page</a>
+| <a href="https://lnxwebs58.cpt.wa.co.za:2096/">Home Mail</a>
 | <a href="http://www.sasolburgbaptist.org/">Sasolburg Baptist</a>
 |</p>
-<p>
-| <a href="http://www.kalahari.net/">Kalahari.net</a>
-| <a href="http://www.amazon.com/exec/obidos/subst/home/home.html/104-3174763-3486858">Amazon.com</a>
-| <a href="http://www.sybaritic.co.za/store/index.php">Sybaritic</a>
-|</p>
 </td>
-<td class="c7" style="width: 3%;">&nbsp;</td>
-<td class="c8" style="width: 3%;">&nbsp;</td>
-<td class="c9" style="width: 3%;">&nbsp;</td>
-<td class="c10" style="width: 3%;">&nbsp;</td>
-<td class="c11" style="width: 3%;">&nbsp;</td>
+<td class="c7">&nbsp;</td>
+<td class="c8">&nbsp;</td>
+<td class="c9">&nbsp;</td>
+<td class="c10">&nbsp;</td>
+<td class="c11">&nbsp;</td>
 </tr>
 <tr>
 <td class="c12">&nbsp;</td>
@@ -168,6 +192,8 @@
 <td class="c40">&nbsp;</td>
 </tr>
 </tbody></table>
+
+<div class="verses">
 <p class="verse"><sub>33</sub>But seek first the kingdom of God and his righteousness, and all these things will be added to you. <em><a href="http://www.gnpcb.org/esv/search/?q=Matthew+6:33">Matthew 6:33 ESV</a></em></p>
 
 <p class="verse"><sub>18</sub> they will pick up serpents with their
@@ -189,5 +215,6 @@ be loosed in heaven. <em><a href="http://www.gnpcb.org/esv/search/?q=Matthew+18%
 <p class="verse"><sub>57</sub> But thanks be to God, who gives us the victory through our Lord Jesus Christ. <em><a href="http://www.gnpcb.org/esv/search/?q=1+Corinthians+15%3A57">1 Corinthians 15:57 ESV</a></em></p>
 
 <p class="verse"><sub>2</sub> Count it all joy, my brothers, when you meet trials of various kinds <em><a href="http://www.gnpcb.org/esv/search/?q=james+1%3A2">James 1:2 ESV</a></em></p>
+</div>
 
 </body></html>

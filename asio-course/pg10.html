@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>A asio network wrapper (TCP)</title>
+<link rel="stylesheet" type="text/css" href="basic.css">
+</head>
+<body>
+<div class="nav">
+<a href="pg9.html"><img src="prev.png" alt="Prev"></a><a href="pg1.html"><img src="up.png" alt="Up"></a><a href="pg1.html"><img src="home.png" alt="Home"></a><a href="pg11.html"><img src="next.png" alt="Next"></a>
+</div>
+<h1 class="ipsType_pagetitle">A guide to getting started with asio</h1>
+<div class="desc">
+Posted by <strong><a title="" href="http://www.gamedev.net/user/64367-drew_benton/" class=
+"url fn name ___hover___member _hoversetup" id="anonymous_element_3" name=
+"anonymous_element_3"><span>Drew_Benton</span></a></strong>, 31 January 2011 ~ 190,508 views
+</div>
+<br class="clear">
+<div class="entry_content ipsType_textblock ipsPad">
+<strong class="bbc">9. A asio network wrapper (</strong><strong class="bbc">TCP)</strong>
+<br>
+<br>
+Now that we know the basics of using the asio library and some simple TCP networking aspects, we can take a look at a
+network wrapper that takes care of the low level stuff. By using the wrapper, we can reuse it and always focus on the application
+logic rather than rewriting the network code ach time.
+<br>
+<br>
+<span style="color: #ff0000"><strong class="bbc">IMPORTANT NOTE:</strong></span> This code is purely for education purposes. Do not
+use it in production systems because there might be bugs. The code is designed to work a specific way and that might result in
+improper execution if you do not require such behavior. While I have tested and deployed the code for numerous projects, I am
+always finding small issues to fix.
+<br>
+<br>
+In addition, the overhead of using such a network wrapper has to be taken into account. For example, there are tons of
+allocations behind the scenes from the vector and lists. In addition, the judicial use of shared_ptr along with std::bind
+handlers does add quite a bit of overhead that might not be acceptable in some environments That is why this code is for
+educational use only!
+<br>
+<br>
+<strong class="bbc">network.h</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#pragma once</span>
+<span class="hl lin">    2 </span>
+<span class="hl lin">    3 </span><span class="hl ppc">#ifndef NETWORK_H_</span>
+<span class="hl lin">    4 </span><span class="hl ppc">#define NETWORK_H_</span>
+<span class="hl lin">    5 </span>
+<span class="hl lin">    6 </span><span class="hl ppc">#define ASIO_STANDALONE</span>
+<span class="hl lin">    7 </span><span class="hl slc">//-----------------------------------------------------------------------------</span>
+<span class="hl lin">    8 </span>
+<span class="hl lin">    9 </span><span class="hl ppc">#include &lt;asio.hpp&gt;</span>
+<span class="hl lin">   10 </span><span class="hl ppc">#include &lt;chrono&gt;</span>
+<span class="hl lin">   11 </span><span class="hl ppc">#include &lt;memory&gt;</span>
+<span class="hl lin">   12 </span><span class="hl ppc">#include &lt;string&gt;</span>
+<span class="hl lin">   13 </span><span class="hl ppc">#include &lt;vector&gt;</span>
+<span class="hl lin">   14 </span><span class="hl ppc">#include &lt;list&gt;</span>
+<span class="hl lin">   15 </span><span class="hl ppc">#include &lt;system_error&gt;</span>
+<span class="hl lin">   16 </span><span class="hl ppc">#include &lt;cstdint&gt;</span>
+<span class="hl lin">   17 </span>
+<span class="hl lin">   18 </span><span class="hl slc">//-----------------------------------------------------------------------------</span>
+<span class="hl lin">   19 </span>
+<span class="hl lin">   20 </span><span class="hl kwa">using</span> std<span class="hl opt">::</span><span class="hl kwb">uint64_t</span><span class="hl opt">;</span>
+<span class="hl lin">   21 </span><span class="hl kwa">using</span> std<span class="hl opt">::</span><span class="hl kwb">uint32_t</span><span class="hl opt">;</span>
+<span class="hl lin">   22 </span><span class="hl kwa">using</span> std<span class="hl opt">::</span><span class="hl kwb">uint16_t</span><span class="hl opt">;</span>
+<span class="hl lin">   23 </span><span class="hl kwa">using</span> std<span class="hl opt">::</span><span class="hl kwb">uint8_t</span><span class="hl opt">;</span>
+<span class="hl lin">   24 </span>
+<span class="hl lin">   25 </span><span class="hl kwa">using</span> std<span class="hl opt">::</span><span class="hl kwb">int64_t</span><span class="hl opt">;</span>
+<span class="hl lin">   26 </span><span class="hl kwa">using</span> std<span class="hl opt">::</span><span class="hl kwb">int32_t</span><span class="hl opt">;</span>
+<span class="hl lin">   27 </span><span class="hl kwa">using</span> std<span class="hl opt">::</span><span class="hl kwb">int16_t</span><span class="hl opt">;</span>
+<span class="hl lin">   28 </span><span class="hl kwa">using</span> std<span class="hl opt">::</span><span class="hl kwb">int8_t</span><span class="hl opt">;</span>
+<span class="hl lin">   29 </span>
+<span class="hl lin">   30 </span><span class="hl slc">//-----------------------------------------------------------------------------</span>
+<span class="hl lin">   31 </span>
+<span class="hl lin">   32 </span><span class="hl kwc">class</span> Hive<span class="hl opt">;</span>
+<span class="hl lin">   33 </span><span class="hl kwc">class</span> Acceptor<span class="hl opt">;</span>
+<span class="hl lin">   34 </span><span class="hl kwc">class</span> Connection<span class="hl opt">;</span>
+<span class="hl lin">   35 </span>
+<span class="hl lin">   36 </span><span class="hl slc">//-----------------------------------------------------------------------------</span>
+<span class="hl lin">   37 </span>
+<span class="hl lin">   38 </span><span class="hl kwc">class</span> Connection <span class="hl opt">:</span> <span class="hl kwc">public</span> std<span class="hl opt">::</span>enable_shared_from_this<span class="hl opt">&lt;</span> Connection <span class="hl opt">&gt;</span>
+<span class="hl lin">   39 </span><span class="hl opt">{</span>
+<span class="hl lin">   40 </span>    <span class="hl kwc">friend class</span> Acceptor<span class="hl opt">;</span>
+<span class="hl lin">   41 </span>    <span class="hl kwc">friend class</span> Hive<span class="hl opt">;</span>
+<span class="hl lin">   42 </span>
+<span class="hl lin">   43 </span><span class="hl kwc">private</span><span class="hl opt">:</span>
+<span class="hl lin">   44 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> Hive <span class="hl opt">&gt;</span> m_hive<span class="hl opt">;</span>
+<span class="hl lin">   45 </span>    asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>socket m_socket<span class="hl opt">;</span>
+<span class="hl lin">   46 </span>    asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>strand m_io_strand<span class="hl opt">;</span>
+<span class="hl lin">   47 </span>    asio<span class="hl opt">::</span>steady_timer m_timer<span class="hl opt">;</span>
+<span class="hl lin">   48 </span>    std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>steady_clock<span class="hl opt">::</span>time_point m_last_time<span class="hl opt">;</span>
+<span class="hl lin">   49 </span>    std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span> <span class="hl kwb">uint8_t</span> <span class="hl opt">&gt;</span> m_recv_buffer<span class="hl opt">;</span>
+<span class="hl lin">   50 </span>    std<span class="hl opt">::</span>list<span class="hl opt">&lt;</span> <span class="hl kwb">int32_t</span> <span class="hl opt">&gt;</span> m_pending_recvs<span class="hl opt">;</span>
+<span class="hl lin">   51 </span>    std<span class="hl opt">::</span>list<span class="hl opt">&lt;</span> std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span> <span class="hl kwb">uint8_t</span> <span class="hl opt">&gt; &gt;</span> m_pending_sends<span class="hl opt">;</span>
+<span class="hl lin">   52 </span>    <span class="hl kwb">int32_t</span> m_receive_buffer_size<span class="hl opt">;</span>
+<span class="hl lin">   53 </span>    <span class="hl kwb">int32_t</span> m_timer_interval<span class="hl opt">;</span>
+<span class="hl lin">   54 </span>    <span class="hl kwc">volatile</span> std<span class="hl opt">::</span>atomic_int m_error_state<span class="hl opt">;</span>
+<span class="hl lin">   55 </span>
+<span class="hl lin">   56 </span><span class="hl kwc">protected</span><span class="hl opt">:</span>
+<span class="hl lin">   57 </span>    <span class="hl kwd">Connection</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> Hive <span class="hl opt">&gt;</span> hive<span class="hl opt">);</span>
+<span class="hl lin">   58 </span>    <span class="hl kwc">virtual</span> <span class="hl opt">~</span><span class="hl kwd">Connection</span><span class="hl opt">();</span>
+<span class="hl lin">   59 </span>
+<span class="hl lin">   60 </span><span class="hl kwc">private</span><span class="hl opt">:</span>
+<span class="hl lin">   61 </span>    <span class="hl kwd">Connection</span><span class="hl opt">(</span><span class="hl kwb">const</span> Connection <span class="hl opt">&amp;</span> rhs<span class="hl opt">);</span>
+<span class="hl lin">   62 </span>    Connection <span class="hl opt">&amp;</span> <span class="hl kwc">operator</span> <span class="hl opt">=(</span><span class="hl kwb">const</span> Connection <span class="hl opt">&amp;</span> rhs<span class="hl opt">);</span>
+<span class="hl lin">   63 </span>    <span class="hl kwb">void</span> <span class="hl kwd">StartSend</span><span class="hl opt">();</span>
+<span class="hl lin">   64 </span>    <span class="hl kwb">void</span> <span class="hl kwd">StartRecv</span><span class="hl opt">(</span><span class="hl kwb">int32_t</span> total_bytes<span class="hl opt">);</span>
+<span class="hl lin">   65 </span>    <span class="hl kwb">void</span> <span class="hl kwd">StartTimer</span><span class="hl opt">();</span>
+<span class="hl lin">   66 </span>    <span class="hl kwb">void</span> <span class="hl kwd">StartError</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">);</span>
+<span class="hl lin">   67 </span>    <span class="hl kwb">void</span> <span class="hl kwd">DispatchSend</span><span class="hl opt">(</span>std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span> <span class="hl kwb">uint8_t</span> <span class="hl opt">&gt;</span> buffer<span class="hl opt">);</span>
+<span class="hl lin">   68 </span>    <span class="hl kwb">void</span> <span class="hl kwd">DispatchRecv</span><span class="hl opt">(</span><span class="hl kwb">int32_t</span> total_bytes<span class="hl opt">);</span>
+<span class="hl lin">   69 </span>    <span class="hl kwb">void</span> <span class="hl kwd">DispatchTimer</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">);</span>
+<span class="hl lin">   70 </span>    <span class="hl kwb">void</span> <span class="hl kwd">HandleConnect</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">);</span>
+<span class="hl lin">   71 </span>    <span class="hl kwb">void</span> <span class="hl kwd">HandleSend</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">,</span> std<span class="hl opt">::</span>list<span class="hl opt">&lt;</span> std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span> <span class="hl kwb">uint8_t</span> <span class="hl opt">&gt; &gt;::</span>iterator itr<span class="hl opt">);</span>
+<span class="hl lin">   72 </span>    <span class="hl kwb">void</span> <span class="hl kwd">HandleRecv</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">,</span> <span class="hl kwb">int32_t</span> actual_bytes<span class="hl opt">);</span>
+<span class="hl lin">   73 </span>    <span class="hl kwb">void</span> <span class="hl kwd">HandleTimer</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">);</span>
+<span class="hl lin">   74 </span>
+<span class="hl lin">   75 </span><span class="hl kwc">private</span><span class="hl opt">:</span>
+<span class="hl lin">   76 </span>    <span class="hl slc">// Called when the connection has successfully connected to the local</span>
+<span class="hl lin">   77 </span>    <span class="hl slc">// host.</span>
+<span class="hl lin">   78 </span>    <span class="hl kwc">virtual</span> <span class="hl kwb">void</span> <span class="hl kwd">OnAccept</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>string <span class="hl opt">&amp;</span> host<span class="hl opt">,</span> <span class="hl kwb">uint16_t</span> port<span class="hl opt">) =</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   79 </span>
+<span class="hl lin">   80 </span>    <span class="hl slc">// Called when the connection has successfully connected to the remote</span>
+<span class="hl lin">   81 </span>    <span class="hl slc">// host.</span>
+<span class="hl lin">   82 </span>    <span class="hl kwc">virtual</span> <span class="hl kwb">void</span> <span class="hl kwd">OnConnect</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>string <span class="hl opt">&amp;</span> host<span class="hl opt">,</span> <span class="hl kwb">uint16_t</span> port<span class="hl opt">) =</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   83 </span>
+<span class="hl lin">   84 </span>    <span class="hl slc">// Called when data has been sent by the connection.</span>
+<span class="hl lin">   85 </span>    <span class="hl kwc">virtual</span> <span class="hl kwb">void</span> <span class="hl kwd">OnSend</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span> <span class="hl kwb">uint8_t</span> <span class="hl opt">&gt; &amp;</span> buffer<span class="hl opt">) =</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   86 </span>
+<span class="hl lin">   87 </span>    <span class="hl slc">// Called when data has been received by the connection.</span>
+<span class="hl lin">   88 </span>    <span class="hl kwc">virtual</span> <span class="hl kwb">void</span> <span class="hl kwd">OnRecv</span><span class="hl opt">(</span>std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span> <span class="hl kwb">uint8_t</span> <span class="hl opt">&gt; &amp;</span> buffer<span class="hl opt">) =</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   89 </span>
+<span class="hl lin">   90 </span>    <span class="hl slc">// Called on each timer event.</span>
+<span class="hl lin">   91 </span>    <span class="hl kwc">virtual</span> <span class="hl kwb">void</span> <span class="hl kwd">OnTimer</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>microseconds <span class="hl opt">&amp;</span> delta<span class="hl opt">) =</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   92 </span>
+<span class="hl lin">   93 </span>    <span class="hl slc">// Called when an error is encountered.</span>
+<span class="hl lin">   94 </span>    <span class="hl kwc">virtual</span> <span class="hl kwb">void</span> <span class="hl kwd">OnError</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">) =</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   95 </span>
+<span class="hl lin">   96 </span><span class="hl kwc">public</span><span class="hl opt">:</span>
+<span class="hl lin">   97 </span>    <span class="hl slc">// Returns the Hive object.</span>
+<span class="hl lin">   98 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> Hive <span class="hl opt">&gt;</span> <span class="hl kwd">GetHive</span><span class="hl opt">();</span>
+<span class="hl lin">   99 </span>
+<span class="hl lin">  100 </span>    <span class="hl slc">// Returns the socket object.</span>
+<span class="hl lin">  101 </span>    asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>socket <span class="hl opt">&amp;</span> <span class="hl kwd">GetSocket</span><span class="hl opt">();</span>
+<span class="hl lin">  102 </span>
+<span class="hl lin">  103 </span>    <span class="hl slc">// Returns the strand object.</span>
+<span class="hl lin">  104 </span>    asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>strand <span class="hl opt">&amp;</span> <span class="hl kwd">GetStrand</span><span class="hl opt">();</span>
+<span class="hl lin">  105 </span>
+<span class="hl lin">  106 </span>    <span class="hl slc">// Sets the application specific receive buffer size used. For stream</span>
+<span class="hl lin">  107 </span>    <span class="hl slc">// based protocols such as HTTP, you want this to be pretty large, like</span>
+<span class="hl lin">  108 </span>    <span class="hl slc">// 64kb. For packet based protocols, then it will be much smaller,</span>
+<span class="hl lin">  109 </span>    <span class="hl slc">// usually 512b - 8kb depending on the protocol. The default value is</span>
+<span class="hl lin">  110 </span>    <span class="hl slc">// 4kb.</span>
+<span class="hl lin">  111 </span>    <span class="hl kwb">void</span> <span class="hl kwd">SetReceiveBufferSize</span><span class="hl opt">(</span><span class="hl kwb">int32_t</span> size<span class="hl opt">);</span>
+<span class="hl lin">  112 </span>
+<span class="hl lin">  113 </span>    <span class="hl slc">// Returns the size of the receive buffer size of the current object.</span>
+<span class="hl lin">  114 </span>    <span class="hl kwb">int32_t</span> <span class="hl kwd">GetReceiveBufferSize</span><span class="hl opt">()</span> <span class="hl kwb">const</span><span class="hl opt">;</span>
+<span class="hl lin">  115 </span>
+<span class="hl lin">  116 </span>    <span class="hl slc">// Sets the timer interval of the object. The interval is changed after</span>
+<span class="hl lin">  117 </span>    <span class="hl slc">// the next update is called.</span>
+<span class="hl lin">  118 </span>    <span class="hl kwb">void</span> <span class="hl kwd">SetTimerInterval</span><span class="hl opt">(</span><span class="hl kwb">int32_t</span> timer_interval_ms<span class="hl opt">);</span>
+<span class="hl lin">  119 </span>
+<span class="hl lin">  120 </span>    <span class="hl slc">// Returns the timer interval of the object.</span>
+<span class="hl lin">  121 </span>    <span class="hl kwb">int32_t</span> <span class="hl kwd">GetTimerInterval</span><span class="hl opt">()</span> <span class="hl kwb">const</span><span class="hl opt">;</span>
+<span class="hl lin">  122 </span>
+<span class="hl lin">  123 </span>    <span class="hl slc">// Returns true if this object has an error associated with it.</span>
+<span class="hl lin">  124 </span>    <span class="hl kwb">bool</span> <span class="hl kwd">HasError</span><span class="hl opt">();</span>
+<span class="hl lin">  125 </span>
+<span class="hl lin">  126 </span>    <span class="hl slc">// Binds the socket to the specified interface.</span>
+<span class="hl lin">  127 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Bind</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>string <span class="hl opt">&amp;</span> ip<span class="hl opt">,</span> <span class="hl kwb">uint16_t</span> port<span class="hl opt">);</span>
+<span class="hl lin">  128 </span>
+<span class="hl lin">  129 </span>    <span class="hl slc">// Starts an a/synchronous connect.</span>
+<span class="hl lin">  130 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Connect</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>string <span class="hl opt">&amp;</span> host<span class="hl opt">,</span> <span class="hl kwb">uint16_t</span> port<span class="hl opt">);</span>
+<span class="hl lin">  131 </span>
+<span class="hl lin">  132 </span>    <span class="hl slc">// Posts data to be sent to the connection.</span>
+<span class="hl lin">  133 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Send</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span> <span class="hl kwb">uint8_t</span> <span class="hl opt">&gt; &amp;</span> buffer<span class="hl opt">);</span>
+<span class="hl lin">  134 </span>
+<span class="hl lin">  135 </span>    <span class="hl slc">// Posts a recv for the connection to process. If total_bytes is 0, then</span>
+<span class="hl lin">  136 </span>    <span class="hl slc">// as many bytes as possible up to GetReceiveBufferSize() will be</span>
+<span class="hl lin">  137 </span>    <span class="hl slc">// waited for. If Recv is not 0, then the connection will wait for exactly</span>
+<span class="hl lin">  138 </span>    <span class="hl slc">// total_bytes before invoking OnRecv.</span>
+<span class="hl lin">  139 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Recv</span><span class="hl opt">(</span><span class="hl kwb">int32_t</span> total_bytes <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">);</span>
+<span class="hl lin">  140 </span>
+<span class="hl lin">  141 </span>    <span class="hl slc">// Posts an asynchronous disconnect event for the object to process.</span>
+<span class="hl lin">  142 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Disconnect</span><span class="hl opt">();</span>
+<span class="hl lin">  143 </span><span class="hl opt">};</span>
+<span class="hl lin">  144 </span>
+<span class="hl lin">  145 </span><span class="hl slc">//-----------------------------------------------------------------------------</span>
+<span class="hl lin">  146 </span>
+<span class="hl lin">  147 </span><span class="hl kwc">class</span> Acceptor <span class="hl opt">:</span> <span class="hl kwc">public</span> std<span class="hl opt">::</span>enable_shared_from_this<span class="hl opt">&lt;</span> Acceptor <span class="hl opt">&gt;</span>
+<span class="hl lin">  148 </span><span class="hl opt">{</span>
+<span class="hl lin">  149 </span>    <span class="hl kwc">friend class</span> Hive<span class="hl opt">;</span>
+<span class="hl lin">  150 </span>
+<span class="hl lin">  151 </span><span class="hl kwc">private</span><span class="hl opt">:</span>
+<span class="hl lin">  152 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> Hive <span class="hl opt">&gt;</span> m_hive<span class="hl opt">;</span>
+<span class="hl lin">  153 </span>    asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>acceptor m_acceptor<span class="hl opt">;</span>
+<span class="hl lin">  154 </span>    asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>strand m_io_strand<span class="hl opt">;</span>
+<span class="hl lin">  155 </span>    asio<span class="hl opt">::</span>steady_timer m_timer<span class="hl opt">;</span>
+<span class="hl lin">  156 </span>    std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>steady_clock<span class="hl opt">::</span>time_point m_last_time<span class="hl opt">;</span>
+<span class="hl lin">  157 </span>    <span class="hl kwb">int32_t</span> m_timer_interval<span class="hl opt">;</span>
+<span class="hl lin">  158 </span>    <span class="hl kwc">volatile</span> std<span class="hl opt">::</span>atomic_int m_error_state<span class="hl opt">;</span>
+<span class="hl lin">  159 </span>
+<span class="hl lin">  160 </span><span class="hl kwc">private</span><span class="hl opt">:</span>
+<span class="hl lin">  161 </span>    <span class="hl kwd">Acceptor</span><span class="hl opt">(</span><span class="hl kwb">const</span> Acceptor <span class="hl opt">&amp;</span> rhs<span class="hl opt">);</span>
+<span class="hl lin">  162 </span>    Acceptor <span class="hl opt">&amp;</span> <span class="hl kwc">operator</span> <span class="hl opt">=(</span><span class="hl kwb">const</span> Acceptor <span class="hl opt">&amp;</span> rhs<span class="hl opt">);</span>
+<span class="hl lin">  163 </span>    <span class="hl kwb">void</span> <span class="hl kwd">StartTimer</span><span class="hl opt">();</span>
+<span class="hl lin">  164 </span>    <span class="hl kwb">void</span> <span class="hl kwd">StartError</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">);</span>
+<span class="hl lin">  165 </span>    <span class="hl kwb">void</span> <span class="hl kwd">DispatchAccept</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> Connection <span class="hl opt">&gt;</span> connection<span class="hl opt">);</span>
+<span class="hl lin">  166 </span>    <span class="hl kwb">void</span> <span class="hl kwd">HandleTimer</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">);</span>
+<span class="hl lin">  167 </span>    <span class="hl kwb">void</span> <span class="hl kwd">HandleAccept</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">,</span> std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> Connection <span class="hl opt">&gt;</span> connection<span class="hl opt">);</span>
+<span class="hl lin">  168 </span>
+<span class="hl lin">  169 </span><span class="hl kwc">protected</span><span class="hl opt">:</span>
+<span class="hl lin">  170 </span>    <span class="hl kwd">Acceptor</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> Hive <span class="hl opt">&gt;</span> hive<span class="hl opt">);</span>
+<span class="hl lin">  171 </span>    <span class="hl kwc">virtual</span> <span class="hl opt">~</span><span class="hl kwd">Acceptor</span><span class="hl opt">();</span>
+<span class="hl lin">  172 </span>
+<span class="hl lin">  173 </span><span class="hl kwc">private</span><span class="hl opt">:</span>
+<span class="hl lin">  174 </span>    <span class="hl slc">// Called when a connection has connected to the server. This function</span>
+<span class="hl lin">  175 </span>    <span class="hl slc">// should return true to invoke the connection's OnAccept function if the</span>
+<span class="hl lin">  176 </span>    <span class="hl slc">// connection will be kept. If the connection will not be kept, the</span>
+<span class="hl lin">  177 </span>    <span class="hl slc">// connection's Disconnect function should be called and the function</span>
+<span class="hl lin">  178 </span>    <span class="hl slc">// should return false.</span>
+<span class="hl lin">  179 </span>    <span class="hl kwc">virtual</span> <span class="hl kwb">bool</span> <span class="hl kwd">OnAccept</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> Connection <span class="hl opt">&gt;</span> connection<span class="hl opt">,</span> <span class="hl kwb">const</span> std<span class="hl opt">::</span>string <span class="hl opt">&amp;</span> host<span class="hl opt">,</span> <span class="hl kwb">uint16_t</span> port<span class="hl opt">) =</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">  180 </span>
+<span class="hl lin">  181 </span>    <span class="hl slc">// Called on each timer event.</span>
+<span class="hl lin">  182 </span>    <span class="hl kwc">virtual</span> <span class="hl kwb">void</span> <span class="hl kwd">OnTimer</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>microseconds <span class="hl opt">&amp;</span> delta<span class="hl opt">) =</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">  183 </span>
+<span class="hl lin">  184 </span>    <span class="hl slc">// Called when an error is encountered. Most typically, this is when the</span>
+<span class="hl lin">  185 </span>    <span class="hl slc">// acceptor is being closed via the Stop function or if the Listen is</span>
+<span class="hl lin">  186 </span>    <span class="hl slc">// called on an address that is not available.</span>
+<span class="hl lin">  187 </span>    <span class="hl kwc">virtual</span> <span class="hl kwb">void</span> <span class="hl kwd">OnError</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code <span class="hl opt">&amp;</span> error<span class="hl opt">) =</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">  188 </span>
+<span class="hl lin">  189 </span><span class="hl kwc">public</span><span class="hl opt">:</span>
+<span class="hl lin">  190 </span>    <span class="hl slc">// Returns the Hive object.</span>
+<span class="hl lin">  191 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> Hive <span class="hl opt">&gt;</span> <span class="hl kwd">GetHive</span><span class="hl opt">();</span>
+<span class="hl lin">  192 </span>
+<span class="hl lin">  193 </span>    <span class="hl slc">// Returns the acceptor object.</span>
+<span class="hl lin">  194 </span>    asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>acceptor <span class="hl opt">&amp;</span> <span class="hl kwd">GetAcceptor</span><span class="hl opt">();</span>
+<span class="hl lin">  195 </span>
+<span class="hl lin">  196 </span>    <span class="hl slc">// Returns the strand object.</span>
+<span class="hl lin">  197 </span>    asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>strand <span class="hl opt">&amp;</span> <span class="hl kwd">GetStrand</span><span class="hl opt">();</span>
+<span class="hl lin">  198 </span>
+<span class="hl lin">  199 </span>    <span class="hl slc">// Sets the timer interval of the object. The interval is changed after</span>
+<span class="hl lin">  200 </span>    <span class="hl slc">// the next update is called. The default value is 1000 ms.</span>
+<span class="hl lin">  201 </span>    <span class="hl kwb">void</span> <span class="hl kwd">SetTimerInterval</span><span class="hl opt">(</span><span class="hl kwb">int32_t</span> timer_interval_ms<span class="hl opt">);</span>
+<span class="hl lin">  202 </span>
+<span class="hl lin">  203 </span>    <span class="hl slc">// Returns the timer interval of the object.</span>
+<span class="hl lin">  204 </span>    <span class="hl kwb">int32_t</span> <span class="hl kwd">GetTimerInterval</span><span class="hl opt">()</span> <span class="hl kwb">const</span><span class="hl opt">;</span>
+<span class="hl lin">  205 </span>
+<span class="hl lin">  206 </span>    <span class="hl slc">// Returns true if this object has an error associated with it.</span>
+<span class="hl lin">  207 </span>    <span class="hl kwb">bool</span> <span class="hl kwd">HasError</span><span class="hl opt">();</span>
+<span class="hl lin">  208 </span>
+<span class="hl lin">  209 </span><span class="hl kwc">public</span><span class="hl opt">:</span>
+<span class="hl lin">  210 </span>    <span class="hl slc">// Begin listening on the specific network interface.</span>
+<span class="hl lin">  211 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Listen</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>string <span class="hl opt">&amp;</span> host<span class="hl opt">,</span> <span class="hl kwb">const uint16_t</span> <span class="hl opt">&amp;</span> port<span class="hl opt">);</span>
+<span class="hl lin">  212 </span>
+<span class="hl lin">  213 </span>    <span class="hl slc">// Posts the connection to the listening interface. The next client that</span>
+<span class="hl lin">  214 </span>    <span class="hl slc">// connections will be given this connection. If multiple calls to Accept</span>
+<span class="hl lin">  215 </span>    <span class="hl slc">// are called at a time, then they are accepted in a FIFO order.</span>
+<span class="hl lin">  216 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Accept</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> Connection <span class="hl opt">&gt;</span> connection<span class="hl opt">);</span>
+<span class="hl lin">  217 </span>
+<span class="hl lin">  218 </span>    <span class="hl slc">// Stop the Acceptor from listening.</span>
+<span class="hl lin">  219 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Stop</span><span class="hl opt">();</span>
+<span class="hl lin">  220 </span><span class="hl opt">};</span>
+<span class="hl lin">  221 </span>
+<span class="hl lin">  222 </span><span class="hl slc">//-----------------------------------------------------------------------------</span>
+<span class="hl lin">  223 </span>
+<span class="hl lin">  224 </span><span class="hl kwc">class</span> Hive <span class="hl opt">:</span> <span class="hl kwc">public</span> std<span class="hl opt">::</span>enable_shared_from_this<span class="hl opt">&lt;</span> Hive <span class="hl opt">&gt;</span>
+<span class="hl lin">  225 </span><span class="hl opt">{</span>
+<span class="hl lin">  226 </span><span class="hl kwc">private</span><span class="hl opt">:</span>
+<span class="hl lin">  227 </span>    asio<span class="hl opt">::</span>io_service m_io_service<span class="hl opt">;</span>
+<span class="hl lin">  228 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>work <span class="hl opt">&gt;</span> m_work_ptr<span class="hl opt">;</span>
+<span class="hl lin">  229 </span>    <span class="hl kwc">volatile</span> std<span class="hl opt">::</span>atomic_int m_shutdown<span class="hl opt">;</span>
+<span class="hl lin">  230 </span>
+<span class="hl lin">  231 </span><span class="hl kwc">private</span><span class="hl opt">:</span>
+<span class="hl lin">  232 </span>    <span class="hl kwd">Hive</span><span class="hl opt">(</span><span class="hl kwb">const</span> Hive <span class="hl opt">&amp;</span> rhs<span class="hl opt">);</span>
+<span class="hl lin">  233 </span>    Hive <span class="hl opt">&amp;</span> <span class="hl kwc">operator</span> <span class="hl opt">=(</span><span class="hl kwb">const</span> Hive <span class="hl opt">&amp;</span> rhs<span class="hl opt">);</span>
+<span class="hl lin">  234 </span>
+<span class="hl lin">  235 </span><span class="hl kwc">public</span><span class="hl opt">:</span>
+<span class="hl lin">  236 </span>    <span class="hl kwd">Hive</span><span class="hl opt">();</span>
+<span class="hl lin">  237 </span>    <span class="hl kwc">virtual</span> <span class="hl opt">~</span><span class="hl kwd">Hive</span><span class="hl opt">();</span>
+<span class="hl lin">  238 </span>
+<span class="hl lin">  239 </span>    <span class="hl slc">// Returns the io_service of this object.</span>
+<span class="hl lin">  240 </span>    asio<span class="hl opt">::</span>io_service <span class="hl opt">&amp;</span> <span class="hl kwd">GetService</span><span class="hl opt">();</span>
+<span class="hl lin">  241 </span>
+<span class="hl lin">  242 </span>    <span class="hl slc">// Returns true if the Stop function has been called.</span>
+<span class="hl lin">  243 </span>    <span class="hl kwb">bool</span> <span class="hl kwd">HasStopped</span><span class="hl opt">();</span>
+<span class="hl lin">  244 </span>
+<span class="hl lin">  245 </span>    <span class="hl slc">// Polls the networking subsystem once from the current thread and</span>
+<span class="hl lin">  246 </span>    <span class="hl slc">// returns.</span>
+<span class="hl lin">  247 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Poll</span><span class="hl opt">();</span>
+<span class="hl lin">  248 </span>
+<span class="hl lin">  249 </span>    <span class="hl slc">// Runs the networking system on the current thread. This function blocks</span>
+<span class="hl lin">  250 </span>    <span class="hl slc">// until the networking system is stopped, so do not call on a single</span>
+<span class="hl lin">  251 </span>    <span class="hl slc">// threaded application with no other means of being able to call Stop</span>
+<span class="hl lin">  252 </span>    <span class="hl slc">// unless you code in such logic.</span>
+<span class="hl lin">  253 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Run</span><span class="hl opt">();</span>
+<span class="hl lin">  254 </span>
+<span class="hl lin">  255 </span>    <span class="hl slc">// Stops the networking system. All work is finished and no more</span>
+<span class="hl lin">  256 </span>    <span class="hl slc">// networking interactions will be possible afterwards until Reset is called.</span>
+<span class="hl lin">  257 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Stop</span><span class="hl opt">();</span>
+<span class="hl lin">  258 </span>
+<span class="hl lin">  259 </span>    <span class="hl slc">// Restarts the networking system after Stop as been called. A new work</span>
+<span class="hl lin">  260 </span>    <span class="hl slc">// object is created ad the shutdown flag is cleared.</span>
+<span class="hl lin">  261 </span>    <span class="hl kwb">void</span> <span class="hl kwd">Reset</span><span class="hl opt">();</span>
+<span class="hl lin">  262 </span><span class="hl opt">};</span>
+<span class="hl lin">  263 </span>
+<span class="hl lin">  264 </span><span class="hl slc">//-----------------------------------------------------------------------------</span>
+<span class="hl lin">  265 </span>
+<span class="hl lin">  266 </span><span class="hl ppc">#endif</span>
+</pre>
+
+<strong class="bbc">network.cpp</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#include &lt;atomic&gt;</span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include</span> <span class="hl pps">&quot;network.h&quot;</span><span class="hl ppc"></span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl lin">    4 </span>
+<span class="hl lin">    5 </span><span class="hl kwa">using namespace</span> std<span class="hl opt">::</span>placeholders<span class="hl opt">;</span> <span class="hl slc">// adds _1, _2, ...</span>
+<span class="hl lin">    6 </span>
+<span class="hl lin">    7 </span><span class="hl slc">//-----------------------------------------------------------------------------</span>
+<span class="hl lin">    8 </span>
+<span class="hl lin">    9 </span>Hive<span class="hl opt">::</span><span class="hl kwd">Hive</span><span class="hl opt">()</span>
+<span class="hl lin">   10 </span>    <span class="hl opt">:</span> <span class="hl kwd">m_work_ptr</span><span class="hl opt">(</span><span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">work</span><span class="hl opt">(</span>m_io_service<span class="hl opt">))</span>
+<span class="hl lin">   11 </span>    <span class="hl opt">,</span> <span class="hl kwd">m_shutdown</span><span class="hl opt">(</span><span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">   12 </span><span class="hl opt">{</span>
+<span class="hl lin">   13 </span><span class="hl opt">}</span>
+<span class="hl lin">   14 </span>
+<span class="hl lin">   15 </span>Hive<span class="hl opt">::~</span><span class="hl kwd">Hive</span><span class="hl opt">()</span>
+<span class="hl lin">   16 </span><span class="hl opt">{</span>
+<span class="hl lin">   17 </span><span class="hl opt">}</span>
+<span class="hl lin">   18 </span>
+<span class="hl lin">   19 </span>asio<span class="hl opt">::</span>io_service<span class="hl opt">&amp;</span> Hive<span class="hl opt">::</span><span class="hl kwd">GetService</span><span class="hl opt">()</span>
+<span class="hl lin">   20 </span><span class="hl opt">{</span>
+<span class="hl lin">   21 </span>    <span class="hl kwa">return</span> m_io_service<span class="hl opt">;</span>
+<span class="hl lin">   22 </span><span class="hl opt">}</span>
+<span class="hl lin">   23 </span>
+<span class="hl lin">   24 </span><span class="hl kwb">bool</span> Hive<span class="hl opt">::</span><span class="hl kwd">HasStopped</span><span class="hl opt">()</span>
+<span class="hl lin">   25 </span><span class="hl opt">{</span>
+<span class="hl lin">   26 </span>    <span class="hl kwb">int</span> expected <span class="hl opt">=</span> <span class="hl num">1</span><span class="hl opt">;</span>
+<span class="hl lin">   27 </span>    <span class="hl kwa">return</span> <span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">atomic_compare_exchange_strong</span><span class="hl opt">(&amp;</span>m_shutdown<span class="hl opt">, &amp;</span>expected<span class="hl opt">,</span> <span class="hl num">1</span><span class="hl opt">));</span>
+<span class="hl lin">   28 </span><span class="hl opt">}</span>
+<span class="hl lin">   29 </span>
+<span class="hl lin">   30 </span><span class="hl kwb">void</span> Hive<span class="hl opt">::</span><span class="hl kwd">Poll</span><span class="hl opt">()</span>
+<span class="hl lin">   31 </span><span class="hl opt">{</span>
+<span class="hl lin">   32 </span>    m_io_service<span class="hl opt">.</span><span class="hl kwd">poll</span><span class="hl opt">();</span>
+<span class="hl lin">   33 </span><span class="hl opt">}</span>
+<span class="hl lin">   34 </span>
+<span class="hl lin">   35 </span><span class="hl kwb">void</span> Hive<span class="hl opt">::</span><span class="hl kwd">Run</span><span class="hl opt">()</span>
+<span class="hl lin">   36 </span><span class="hl opt">{</span>
+<span class="hl lin">   37 </span>    m_io_service<span class="hl opt">.</span><span class="hl kwd">run</span><span class="hl opt">();</span>
+<span class="hl lin">   38 </span><span class="hl opt">}</span>
+<span class="hl lin">   39 </span>
+<span class="hl lin">   40 </span><span class="hl kwb">void</span> Hive<span class="hl opt">::</span><span class="hl kwd">Stop</span><span class="hl opt">()</span>
+<span class="hl lin">   41 </span><span class="hl opt">{</span>
+<span class="hl lin">   42 </span>    <span class="hl kwb">int</span> expected <span class="hl opt">=</span> <span class="hl num">1</span><span class="hl opt">;</span>
+<span class="hl lin">   43 </span>
+<span class="hl lin">   44 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">atomic_compare_exchange_strong</span><span class="hl opt">(&amp;</span>m_shutdown<span class="hl opt">, &amp;</span>expected<span class="hl opt">,</span> <span class="hl num">0</span><span class="hl opt">) ==</span> <span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">   45 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   46 </span>        m_work_ptr<span class="hl opt">.</span><span class="hl kwd">reset</span><span class="hl opt">();</span>
+<span class="hl lin">   47 </span>        m_io_service<span class="hl opt">.</span><span class="hl kwd">run</span><span class="hl opt">();</span>
+<span class="hl lin">   48 </span>        m_io_service<span class="hl opt">.</span><span class="hl kwd">stop</span><span class="hl opt">();</span>
+<span class="hl lin">   49 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   50 </span><span class="hl opt">}</span>
+<span class="hl lin">   51 </span>
+<span class="hl lin">   52 </span><span class="hl kwb">void</span> Hive<span class="hl opt">::</span><span class="hl kwd">Reset</span><span class="hl opt">()</span>
+<span class="hl lin">   53 </span><span class="hl opt">{</span>
+<span class="hl lin">   54 </span>    <span class="hl kwb">int</span> expected <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">   55 </span>
+<span class="hl lin">   56 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">atomic_compare_exchange_strong</span><span class="hl opt">(&amp;</span>m_shutdown<span class="hl opt">, &amp;</span>expected<span class="hl opt">,</span> <span class="hl num">1</span><span class="hl opt">) ==</span> <span class="hl num">1</span><span class="hl opt">)</span>
+<span class="hl lin">   57 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   58 </span>        m_io_service<span class="hl opt">.</span><span class="hl kwd">reset</span><span class="hl opt">();</span>
+<span class="hl lin">   59 </span>        m_work_ptr<span class="hl opt">.</span><span class="hl kwd">reset</span><span class="hl opt">(</span><span class="hl kwa">new</span> asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span><span class="hl kwd">work</span><span class="hl opt">(</span>m_io_service<span class="hl opt">));</span>
+<span class="hl lin">   60 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   61 </span><span class="hl opt">}</span>
+<span class="hl lin">   62 </span>
+<span class="hl lin">   63 </span><span class="hl slc">//-----------------------------------------------------------------------------</span>
+<span class="hl lin">   64 </span>
+<span class="hl lin">   65 </span>Acceptor<span class="hl opt">::</span><span class="hl kwd">Acceptor</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Hive<span class="hl opt">&gt;</span> hive<span class="hl opt">)</span>
+<span class="hl lin">   66 </span>    <span class="hl opt">:</span> <span class="hl kwd">m_hive</span><span class="hl opt">(</span>hive<span class="hl opt">)</span>
+<span class="hl lin">   67 </span>    <span class="hl opt">,</span> <span class="hl kwd">m_acceptor</span><span class="hl opt">(</span>hive<span class="hl opt">-&gt;</span><span class="hl kwd">GetService</span><span class="hl opt">())</span>
+<span class="hl lin">   68 </span>    <span class="hl opt">,</span> <span class="hl kwd">m_io_strand</span><span class="hl opt">(</span>hive<span class="hl opt">-&gt;</span><span class="hl kwd">GetService</span><span class="hl opt">())</span>
+<span class="hl lin">   69 </span>    <span class="hl opt">,</span> <span class="hl kwd">m_timer</span><span class="hl opt">(</span>hive<span class="hl opt">-&gt;</span><span class="hl kwd">GetService</span><span class="hl opt">())</span>
+<span class="hl lin">   70 </span>    <span class="hl opt">,</span> <span class="hl kwd">m_timer_interval</span><span class="hl opt">(</span><span class="hl num">1000</span><span class="hl opt">)</span>
+<span class="hl lin">   71 </span>    <span class="hl opt">,</span> <span class="hl kwd">m_error_state</span><span class="hl opt">(</span><span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">   72 </span><span class="hl opt">{</span>
+<span class="hl lin">   73 </span><span class="hl opt">}</span>
+<span class="hl lin">   74 </span>
+<span class="hl lin">   75 </span>Acceptor<span class="hl opt">::~</span><span class="hl kwd">Acceptor</span><span class="hl opt">()</span>
+<span class="hl lin">   76 </span><span class="hl opt">{</span>
+<span class="hl lin">   77 </span><span class="hl opt">}</span>
+<span class="hl lin">   78 </span>
+<span class="hl lin">   79 </span><span class="hl kwb">void</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">StartTimer</span><span class="hl opt">()</span>
+<span class="hl lin">   80 </span><span class="hl opt">{</span>
+<span class="hl lin">   81 </span>    m_last_time <span class="hl opt">=</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>steady_clock<span class="hl opt">::</span><span class="hl kwd">now</span><span class="hl opt">();</span>
+<span class="hl lin">   82 </span>    m_timer<span class="hl opt">.</span><span class="hl kwd">expires_from_now</span><span class="hl opt">(</span>std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">milliseconds</span><span class="hl opt">(</span>m_timer_interval<span class="hl opt">));</span>
+<span class="hl lin">   83 </span>    m_timer<span class="hl opt">.</span><span class="hl kwd">async_wait</span><span class="hl opt">(</span>m_io_strand<span class="hl opt">.</span><span class="hl kwd">wrap</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>Acceptor<span class="hl opt">::</span>HandleTimer<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> _1<span class="hl opt">)));</span>
+<span class="hl lin">   84 </span><span class="hl opt">}</span>
+<span class="hl lin">   85 </span>
+<span class="hl lin">   86 </span><span class="hl kwb">void</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">StartError</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">)</span>
+<span class="hl lin">   87 </span><span class="hl opt">{</span>
+<span class="hl lin">   88 </span>    <span class="hl kwb">int</span> expected <span class="hl opt">=</span> <span class="hl num">1</span><span class="hl opt">;</span>
+<span class="hl lin">   89 </span>
+<span class="hl lin">   90 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">atomic_compare_exchange_strong</span><span class="hl opt">(&amp;</span>m_error_state<span class="hl opt">, &amp;</span>expected<span class="hl opt">,</span> <span class="hl num">0</span><span class="hl opt">) ==</span> <span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">   91 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   92 </span>        std<span class="hl opt">::</span>error_code ec<span class="hl opt">;</span>
+<span class="hl lin">   93 </span>        m_acceptor<span class="hl opt">.</span><span class="hl kwd">cancel</span><span class="hl opt">(</span>ec<span class="hl opt">);</span>
+<span class="hl lin">   94 </span>        m_acceptor<span class="hl opt">.</span><span class="hl kwd">close</span><span class="hl opt">(</span>ec<span class="hl opt">);</span>
+<span class="hl lin">   95 </span>        m_timer<span class="hl opt">.</span><span class="hl kwd">cancel</span><span class="hl opt">(</span>ec<span class="hl opt">);</span>
+<span class="hl lin">   96 </span>        <span class="hl kwd">OnError</span><span class="hl opt">(</span>error<span class="hl opt">);</span>
+<span class="hl lin">   97 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   98 </span><span class="hl opt">}</span>
+<span class="hl lin">   99 </span>
+<span class="hl lin">  100 </span><span class="hl kwb">void</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">DispatchAccept</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Connection<span class="hl opt">&gt;</span> connection<span class="hl opt">)</span>
+<span class="hl lin">  101 </span><span class="hl opt">{</span>
+<span class="hl lin">  102 </span>    m_acceptor<span class="hl opt">.</span><span class="hl kwd">async_accept</span><span class="hl opt">(</span>
+<span class="hl lin">  103 </span>        connection<span class="hl opt">-&gt;</span><span class="hl kwd">GetSocket</span><span class="hl opt">(),</span>
+<span class="hl lin">  104 </span>        connection<span class="hl opt">-&gt;</span><span class="hl kwd">GetStrand</span><span class="hl opt">().</span><span class="hl kwd">wrap</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>Acceptor<span class="hl opt">::</span>HandleAccept<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> _1<span class="hl opt">,</span> connection<span class="hl opt">)));</span>
+<span class="hl lin">  105 </span><span class="hl opt">}</span>
+<span class="hl lin">  106 </span>
+<span class="hl lin">  107 </span><span class="hl kwb">void</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">HandleTimer</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">)</span>
+<span class="hl lin">  108 </span><span class="hl opt">{</span>
+<span class="hl lin">  109 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>error <span class="hl opt">||</span> <span class="hl kwd">HasError</span><span class="hl opt">() ||</span> m_hive<span class="hl opt">-&gt;</span><span class="hl kwd">HasStopped</span><span class="hl opt">())</span>
+<span class="hl lin">  110 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  111 </span>        <span class="hl kwd">StartError</span><span class="hl opt">(</span>error<span class="hl opt">);</span>
+<span class="hl lin">  112 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  113 </span>    <span class="hl kwa">else</span>
+<span class="hl lin">  114 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  115 </span>        <span class="hl kwc">auto</span> dur <span class="hl opt">=</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>duration_cast<span class="hl opt">&lt;</span>std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>milliseconds<span class="hl opt">&gt;(</span>std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>steady_clock<span class="hl opt">::</span><span class="hl kwd">now</span><span class="hl opt">() -</span> m_last_time<span class="hl opt">);</span>
+<span class="hl lin">  116 </span>        <span class="hl kwd">OnTimer</span><span class="hl opt">(</span>dur<span class="hl opt">);</span>
+<span class="hl lin">  117 </span>        <span class="hl kwd">StartTimer</span><span class="hl opt">();</span>
+<span class="hl lin">  118 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  119 </span><span class="hl opt">}</span>
+<span class="hl lin">  120 </span>
+<span class="hl lin">  121 </span><span class="hl kwb">void</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">HandleAccept</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">,</span> std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Connection<span class="hl opt">&gt;</span> connection<span class="hl opt">)</span>
+<span class="hl lin">  122 </span><span class="hl opt">{</span>
+<span class="hl lin">  123 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>error <span class="hl opt">||</span> <span class="hl kwd">HasError</span><span class="hl opt">() ||</span> m_hive<span class="hl opt">-&gt;</span><span class="hl kwd">HasStopped</span><span class="hl opt">())</span>
+<span class="hl lin">  124 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  125 </span>        connection<span class="hl opt">-&gt;</span><span class="hl kwd">StartError</span><span class="hl opt">(</span>error<span class="hl opt">);</span>
+<span class="hl lin">  126 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  127 </span>    <span class="hl kwa">else</span>
+<span class="hl lin">  128 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  129 </span>        <span class="hl kwa">if</span> <span class="hl opt">(</span>connection<span class="hl opt">-&gt;</span><span class="hl kwd">GetSocket</span><span class="hl opt">().</span><span class="hl kwd">is_open</span><span class="hl opt">())</span>
+<span class="hl lin">  130 </span>        <span class="hl opt">{</span>
+<span class="hl lin">  131 </span>            connection<span class="hl opt">-&gt;</span><span class="hl kwd">StartTimer</span><span class="hl opt">();</span>
+<span class="hl lin">  132 </span>
+<span class="hl lin">  133 </span>            <span class="hl kwa">if</span> <span class="hl opt">(</span><span class="hl kwd">OnAccept</span><span class="hl opt">(</span>connection<span class="hl opt">,</span>
+<span class="hl lin">  134 </span>                         connection<span class="hl opt">-&gt;</span><span class="hl kwd">GetSocket</span><span class="hl opt">().</span><span class="hl kwd">remote_endpoint</span><span class="hl opt">().</span><span class="hl kwd">address</span><span class="hl opt">().</span><span class="hl kwd">to_string</span><span class="hl opt">(),</span>
+<span class="hl lin">  135 </span>                         connection<span class="hl opt">-&gt;</span><span class="hl kwd">GetSocket</span><span class="hl opt">().</span><span class="hl kwd">remote_endpoint</span><span class="hl opt">().</span><span class="hl kwd">port</span><span class="hl opt">()))</span>
+<span class="hl lin">  136 </span>            <span class="hl opt">{</span>
+<span class="hl lin">  137 </span>                connection<span class="hl opt">-&gt;</span><span class="hl kwd">OnAccept</span><span class="hl opt">(</span>m_acceptor<span class="hl opt">.</span><span class="hl kwd">local_endpoint</span><span class="hl opt">().</span><span class="hl kwd">address</span><span class="hl opt">().</span><span class="hl kwd">to_string</span><span class="hl opt">(),</span>
+<span class="hl lin">  138 </span>                                     m_acceptor<span class="hl opt">.</span><span class="hl kwd">local_endpoint</span><span class="hl opt">().</span><span class="hl kwd">port</span><span class="hl opt">());</span>
+<span class="hl lin">  139 </span>            <span class="hl opt">}</span>
+<span class="hl lin">  140 </span>        <span class="hl opt">}</span>
+<span class="hl lin">  141 </span>        <span class="hl kwa">else</span>
+<span class="hl lin">  142 </span>        <span class="hl opt">{</span>
+<span class="hl lin">  143 </span>            <span class="hl kwd">StartError</span><span class="hl opt">(</span>error<span class="hl opt">);</span>
+<span class="hl lin">  144 </span>        <span class="hl opt">}</span>
+<span class="hl lin">  145 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  146 </span><span class="hl opt">}</span>
+<span class="hl lin">  147 </span>
+<span class="hl lin">  148 </span><span class="hl kwb">void</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">Stop</span><span class="hl opt">()</span>
+<span class="hl lin">  149 </span><span class="hl opt">{</span>
+<span class="hl lin">  150 </span>    m_io_strand<span class="hl opt">.</span><span class="hl kwd">post</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>Acceptor<span class="hl opt">::</span>HandleTimer<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> asio<span class="hl opt">::</span>error<span class="hl opt">::</span>connection_reset<span class="hl opt">));</span>
+<span class="hl lin">  151 </span><span class="hl opt">}</span>
+<span class="hl lin">  152 </span>
+<span class="hl lin">  153 </span><span class="hl kwb">void</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">Accept</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Connection<span class="hl opt">&gt;</span> connection<span class="hl opt">)</span>
+<span class="hl lin">  154 </span><span class="hl opt">{</span>
+<span class="hl lin">  155 </span>    m_io_strand<span class="hl opt">.</span><span class="hl kwd">post</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>Acceptor<span class="hl opt">::</span>DispatchAccept<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> connection<span class="hl opt">));</span>
+<span class="hl lin">  156 </span><span class="hl opt">}</span>
+<span class="hl lin">  157 </span>
+<span class="hl lin">  158 </span><span class="hl kwb">void</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">Listen</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>string<span class="hl opt">&amp;</span> host<span class="hl opt">,</span> <span class="hl kwb">const uint16_t</span><span class="hl opt">&amp;</span> port<span class="hl opt">)</span>
+<span class="hl lin">  159 </span><span class="hl opt">{</span>
+<span class="hl lin">  160 </span>    asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>resolver <span class="hl kwd">resolver</span><span class="hl opt">(</span>m_hive<span class="hl opt">-&gt;</span><span class="hl kwd">GetService</span><span class="hl opt">());</span>
+<span class="hl lin">  161 </span>    asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>resolver<span class="hl opt">::</span>query <span class="hl kwd">query</span><span class="hl opt">(</span>host<span class="hl opt">,</span> std<span class="hl opt">::</span><span class="hl kwd">to_string</span><span class="hl opt">(</span>port<span class="hl opt">));</span>
+<span class="hl lin">  162 </span>    asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>endpoint endpoint <span class="hl opt">= *</span>resolver<span class="hl opt">.</span><span class="hl kwd">resolve</span><span class="hl opt">(</span>query<span class="hl opt">);</span>
+<span class="hl lin">  163 </span>    m_acceptor<span class="hl opt">.</span><span class="hl kwd">open</span><span class="hl opt">(</span>endpoint<span class="hl opt">.</span><span class="hl kwd">protocol</span><span class="hl opt">());</span>
+<span class="hl lin">  164 </span>    m_acceptor<span class="hl opt">.</span><span class="hl kwd">set_option</span><span class="hl opt">(</span>asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>acceptor<span class="hl opt">::</span><span class="hl kwd">reuse_address</span><span class="hl opt">(</span><span class="hl kwa">false</span><span class="hl opt">));</span>
+<span class="hl lin">  165 </span>    m_acceptor<span class="hl opt">.</span><span class="hl kwd">bind</span><span class="hl opt">(</span>endpoint<span class="hl opt">);</span>
+<span class="hl lin">  166 </span>    m_acceptor<span class="hl opt">.</span><span class="hl kwd">listen</span><span class="hl opt">(</span>asio<span class="hl opt">::</span>socket_base<span class="hl opt">::</span>max_connections<span class="hl opt">);</span>
+<span class="hl lin">  167 </span>    <span class="hl kwd">StartTimer</span><span class="hl opt">();</span>
+<span class="hl lin">  168 </span><span class="hl opt">}</span>
+<span class="hl lin">  169 </span>
+<span class="hl lin">  170 </span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Hive<span class="hl opt">&gt;</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">GetHive</span><span class="hl opt">()</span>
+<span class="hl lin">  171 </span><span class="hl opt">{</span>
+<span class="hl lin">  172 </span>    <span class="hl kwa">return</span> m_hive<span class="hl opt">;</span>
+<span class="hl lin">  173 </span><span class="hl opt">}</span>
+<span class="hl lin">  174 </span>
+<span class="hl lin">  175 </span>asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>acceptor<span class="hl opt">&amp;</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">GetAcceptor</span><span class="hl opt">()</span>
+<span class="hl lin">  176 </span><span class="hl opt">{</span>
+<span class="hl lin">  177 </span>    <span class="hl kwa">return</span> m_acceptor<span class="hl opt">;</span>
+<span class="hl lin">  178 </span><span class="hl opt">}</span>
+<span class="hl lin">  179 </span>
+<span class="hl lin">  180 </span><span class="hl kwb">int32_t</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">GetTimerInterval</span><span class="hl opt">()</span> <span class="hl kwb">const</span>
+<span class="hl lin">  181 </span><span class="hl opt">{</span>
+<span class="hl lin">  182 </span>    <span class="hl kwa">return</span> m_timer_interval<span class="hl opt">;</span>
+<span class="hl lin">  183 </span><span class="hl opt">}</span>
+<span class="hl lin">  184 </span>
+<span class="hl lin">  185 </span><span class="hl kwb">void</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">SetTimerInterval</span><span class="hl opt">(</span><span class="hl kwb">int32_t</span> timer_interval<span class="hl opt">)</span>
+<span class="hl lin">  186 </span><span class="hl opt">{</span>
+<span class="hl lin">  187 </span>    m_timer_interval <span class="hl opt">=</span> timer_interval<span class="hl opt">;</span>
+<span class="hl lin">  188 </span><span class="hl opt">}</span>
+<span class="hl lin">  189 </span>
+<span class="hl lin">  190 </span><span class="hl kwb">bool</span> Acceptor<span class="hl opt">::</span><span class="hl kwd">HasError</span><span class="hl opt">()</span>
+<span class="hl lin">  191 </span><span class="hl opt">{</span>
+<span class="hl lin">  192 </span>    <span class="hl kwb">int</span> expected <span class="hl opt">=</span> <span class="hl num">1</span><span class="hl opt">;</span>
+<span class="hl lin">  193 </span>    <span class="hl kwa">return</span> <span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">atomic_compare_exchange_strong</span><span class="hl opt">(&amp;</span>m_error_state<span class="hl opt">, &amp;</span>expected<span class="hl opt">,</span> <span class="hl num">1</span><span class="hl opt">) ==</span> <span class="hl num">1</span><span class="hl opt">);</span>
+<span class="hl lin">  194 </span><span class="hl opt">}</span>
+<span class="hl lin">  195 </span>
+<span class="hl lin">  196 </span><span class="hl slc">//-----------------------------------------------------------------------------</span>
+<span class="hl lin">  197 </span>
+<span class="hl lin">  198 </span>Connection<span class="hl opt">::</span><span class="hl kwd">Connection</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Hive<span class="hl opt">&gt;</span> hive<span class="hl opt">)</span>
+<span class="hl lin">  199 </span>    <span class="hl opt">:</span> <span class="hl kwd">m_hive</span><span class="hl opt">(</span>hive<span class="hl opt">)</span>
+<span class="hl lin">  200 </span>    <span class="hl opt">,</span> <span class="hl kwd">m_socket</span><span class="hl opt">(</span>hive<span class="hl opt">-&gt;</span><span class="hl kwd">GetService</span><span class="hl opt">())</span>
+<span class="hl lin">  201 </span>    <span class="hl opt">,</span> <span class="hl kwd">m_io_strand</span><span class="hl opt">(</span>hive<span class="hl opt">-&gt;</span><span class="hl kwd">GetService</span><span class="hl opt">())</span>
+<span class="hl lin">  202 </span>    <span class="hl opt">,</span> <span class="hl kwd">m_timer</span><span class="hl opt">(</span>hive<span class="hl opt">-&gt;</span><span class="hl kwd">GetService</span><span class="hl opt">())</span>
+<span class="hl lin">  203 </span>    <span class="hl opt">,</span> <span class="hl kwd">m_receive_buffer_size</span><span class="hl opt">(</span><span class="hl num">4096</span><span class="hl opt">)</span>
+<span class="hl lin">  204 </span>    <span class="hl opt">,</span> <span class="hl kwd">m_timer_interval</span><span class="hl opt">(</span><span class="hl num">1000</span><span class="hl opt">)</span>
+<span class="hl lin">  205 </span>    <span class="hl opt">,</span> <span class="hl kwd">m_error_state</span><span class="hl opt">(</span><span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">  206 </span><span class="hl opt">{</span>
+<span class="hl lin">  207 </span><span class="hl opt">}</span>
+<span class="hl lin">  208 </span>
+<span class="hl lin">  209 </span>Connection<span class="hl opt">::~</span><span class="hl kwd">Connection</span><span class="hl opt">()</span>
+<span class="hl lin">  210 </span><span class="hl opt">{</span>
+<span class="hl lin">  211 </span><span class="hl opt">}</span>
+<span class="hl lin">  212 </span>
+<span class="hl lin">  213 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">Bind</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>string<span class="hl opt">&amp;</span> ip<span class="hl opt">,</span> <span class="hl kwb">uint16_t</span> port<span class="hl opt">)</span>
+<span class="hl lin">  214 </span><span class="hl opt">{</span>
+<span class="hl lin">  215 </span>    asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>endpoint <span class="hl kwd">endpoint</span><span class="hl opt">(</span>asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>address<span class="hl opt">::</span><span class="hl kwd">from_string</span><span class="hl opt">(</span>ip<span class="hl opt">),</span> port<span class="hl opt">);</span>
+<span class="hl lin">  216 </span>    m_socket<span class="hl opt">.</span><span class="hl kwd">open</span><span class="hl opt">(</span>endpoint<span class="hl opt">.</span><span class="hl kwd">protocol</span><span class="hl opt">());</span>
+<span class="hl lin">  217 </span>    m_socket<span class="hl opt">.</span><span class="hl kwd">set_option</span><span class="hl opt">(</span>asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>acceptor<span class="hl opt">::</span><span class="hl kwd">reuse_address</span><span class="hl opt">(</span><span class="hl kwa">false</span><span class="hl opt">));</span>
+<span class="hl lin">  218 </span>    m_socket<span class="hl opt">.</span><span class="hl kwd">bind</span><span class="hl opt">(</span>endpoint<span class="hl opt">);</span>
+<span class="hl lin">  219 </span><span class="hl opt">}</span>
+<span class="hl lin">  220 </span>
+<span class="hl lin">  221 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">StartSend</span><span class="hl opt">()</span>
+<span class="hl lin">  222 </span><span class="hl opt">{</span>
+<span class="hl lin">  223 </span>    <span class="hl kwa">if</span> <span class="hl opt">(!</span>m_pending_sends<span class="hl opt">.</span><span class="hl kwd">empty</span><span class="hl opt">())</span>
+<span class="hl lin">  224 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  225 </span>        asio<span class="hl opt">::</span><span class="hl kwd">async_write</span><span class="hl opt">(</span>
+<span class="hl lin">  226 </span>            m_socket<span class="hl opt">,</span>
+<span class="hl lin">  227 </span>            asio<span class="hl opt">::</span><span class="hl kwd">buffer</span><span class="hl opt">(</span>m_pending_sends<span class="hl opt">.</span><span class="hl kwd">front</span><span class="hl opt">()),</span>
+<span class="hl lin">  228 </span>            m_io_strand<span class="hl opt">.</span><span class="hl kwd">wrap</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(</span>
+<span class="hl lin">  229 </span>                                 <span class="hl opt">&amp;</span>Connection<span class="hl opt">::</span>HandleSend<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> _1<span class="hl opt">,</span> m_pending_sends<span class="hl opt">.</span><span class="hl kwd">begin</span><span class="hl opt">())));</span>
+<span class="hl lin">  230 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  231 </span><span class="hl opt">}</span>
+<span class="hl lin">  232 </span>
+<span class="hl lin">  233 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">StartRecv</span><span class="hl opt">(</span><span class="hl kwb">int32_t</span> total_bytes<span class="hl opt">)</span>
+<span class="hl lin">  234 </span><span class="hl opt">{</span>
+<span class="hl lin">  235 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>total_bytes <span class="hl opt">&gt;</span> <span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">  236 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  237 </span>        m_recv_buffer<span class="hl opt">.</span><span class="hl kwd">resize</span><span class="hl opt">(</span>total_bytes<span class="hl opt">);</span>
+<span class="hl lin">  238 </span>        asio<span class="hl opt">::</span><span class="hl kwd">async_read</span><span class="hl opt">(</span>m_socket<span class="hl opt">,</span>
+<span class="hl lin">  239 </span>                         asio<span class="hl opt">::</span><span class="hl kwd">buffer</span><span class="hl opt">(</span>m_recv_buffer<span class="hl opt">),</span>
+<span class="hl lin">  240 </span>                         m_io_strand<span class="hl opt">.</span><span class="hl kwd">wrap</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>Connection<span class="hl opt">::</span>HandleRecv<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> _1<span class="hl opt">,</span> _2<span class="hl opt">)));</span>
+<span class="hl lin">  241 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  242 </span>    <span class="hl kwa">else</span>
+<span class="hl lin">  243 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  244 </span>        m_recv_buffer<span class="hl opt">.</span><span class="hl kwd">resize</span><span class="hl opt">(</span>m_receive_buffer_size<span class="hl opt">);</span>
+<span class="hl lin">  245 </span>        m_socket<span class="hl opt">.</span><span class="hl kwd">async_read_some</span><span class="hl opt">(</span>asio<span class="hl opt">::</span><span class="hl kwd">buffer</span><span class="hl opt">(</span>m_recv_buffer<span class="hl opt">),</span>
+<span class="hl lin">  246 </span>                                 m_io_strand<span class="hl opt">.</span><span class="hl kwd">wrap</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>Connection<span class="hl opt">::</span>HandleRecv<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> _1<span class="hl opt">,</span> _2<span class="hl opt">)));</span>
+<span class="hl lin">  247 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  248 </span><span class="hl opt">}</span>
+<span class="hl lin">  249 </span>
+<span class="hl lin">  250 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">StartTimer</span><span class="hl opt">()</span>
+<span class="hl lin">  251 </span><span class="hl opt">{</span>
+<span class="hl lin">  252 </span>    m_last_time <span class="hl opt">=</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>steady_clock<span class="hl opt">::</span><span class="hl kwd">now</span><span class="hl opt">();</span>
+<span class="hl lin">  253 </span>    m_timer<span class="hl opt">.</span><span class="hl kwd">expires_from_now</span><span class="hl opt">(</span>std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">milliseconds</span><span class="hl opt">(</span>m_timer_interval<span class="hl opt">));</span>
+<span class="hl lin">  254 </span>    m_timer<span class="hl opt">.</span><span class="hl kwd">async_wait</span><span class="hl opt">(</span>m_io_strand<span class="hl opt">.</span><span class="hl kwd">wrap</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>Connection<span class="hl opt">::</span>DispatchTimer<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> _1<span class="hl opt">)));</span>
+<span class="hl lin">  255 </span><span class="hl opt">}</span>
+<span class="hl lin">  256 </span>
+<span class="hl lin">  257 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">StartError</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">)</span>
+<span class="hl lin">  258 </span><span class="hl opt">{</span>
+<span class="hl lin">  259 </span>    <span class="hl kwb">int</span> expected <span class="hl opt">=</span> <span class="hl num">1</span><span class="hl opt">;</span>
+<span class="hl lin">  260 </span>
+<span class="hl lin">  261 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">atomic_compare_exchange_strong</span><span class="hl opt">(&amp;</span>m_error_state<span class="hl opt">, &amp;</span>expected<span class="hl opt">,</span> <span class="hl num">0</span><span class="hl opt">) ==</span> <span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">  262 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  263 </span>        asio<span class="hl opt">::</span>error_code ec<span class="hl opt">;</span>
+<span class="hl lin">  264 </span>        m_socket<span class="hl opt">.</span><span class="hl kwd">shutdown</span><span class="hl opt">(</span>asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>socket<span class="hl opt">::</span>shutdown_both<span class="hl opt">,</span> ec<span class="hl opt">);</span>
+<span class="hl lin">  265 </span>        m_socket<span class="hl opt">.</span><span class="hl kwd">close</span><span class="hl opt">(</span>ec<span class="hl opt">);</span>
+<span class="hl lin">  266 </span>        m_timer<span class="hl opt">.</span><span class="hl kwd">cancel</span><span class="hl opt">(</span>ec<span class="hl opt">);</span>
+<span class="hl lin">  267 </span>        <span class="hl kwd">OnError</span><span class="hl opt">(</span>error<span class="hl opt">);</span>
+<span class="hl lin">  268 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  269 </span><span class="hl opt">}</span>
+<span class="hl lin">  270 </span>
+<span class="hl lin">  271 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">HandleConnect</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">)</span>
+<span class="hl lin">  272 </span><span class="hl opt">{</span>
+<span class="hl lin">  273 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>error <span class="hl opt">||</span> <span class="hl kwd">HasError</span><span class="hl opt">() ||</span> m_hive<span class="hl opt">-&gt;</span><span class="hl kwd">HasStopped</span><span class="hl opt">())</span>
+<span class="hl lin">  274 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  275 </span>        <span class="hl kwd">StartError</span><span class="hl opt">(</span>error<span class="hl opt">);</span>
+<span class="hl lin">  276 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  277 </span>    <span class="hl kwa">else</span>
+<span class="hl lin">  278 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  279 </span>        <span class="hl kwa">if</span> <span class="hl opt">(</span>m_socket<span class="hl opt">.</span><span class="hl kwd">is_open</span><span class="hl opt">())</span>
+<span class="hl lin">  280 </span>        <span class="hl opt">{</span>
+<span class="hl lin">  281 </span>            <span class="hl kwd">OnConnect</span><span class="hl opt">(</span>m_socket<span class="hl opt">.</span><span class="hl kwd">remote_endpoint</span><span class="hl opt">().</span><span class="hl kwd">address</span><span class="hl opt">().</span><span class="hl kwd">to_string</span><span class="hl opt">(),</span> m_socket<span class="hl opt">.</span><span class="hl kwd">remote_endpoint</span><span class="hl opt">().</span><span class="hl kwd">port</span><span class="hl opt">());</span>
+<span class="hl lin">  282 </span>        <span class="hl opt">}</span>
+<span class="hl lin">  283 </span>        <span class="hl kwa">else</span>
+<span class="hl lin">  284 </span>        <span class="hl opt">{</span>
+<span class="hl lin">  285 </span>            <span class="hl kwd">StartError</span><span class="hl opt">(</span>error<span class="hl opt">);</span>
+<span class="hl lin">  286 </span>        <span class="hl opt">}</span>
+<span class="hl lin">  287 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  288 </span><span class="hl opt">}</span>
+<span class="hl lin">  289 </span>
+<span class="hl lin">  290 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">HandleSend</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">,</span> std<span class="hl opt">::</span>list<span class="hl opt">&lt;</span>std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">uint8_t</span><span class="hl opt">&gt; &gt;::</span>iterator itr<span class="hl opt">)</span>
+<span class="hl lin">  291 </span><span class="hl opt">{</span>
+<span class="hl lin">  292 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>error <span class="hl opt">||</span> <span class="hl kwd">HasError</span><span class="hl opt">() ||</span> m_hive<span class="hl opt">-&gt;</span><span class="hl kwd">HasStopped</span><span class="hl opt">())</span>
+<span class="hl lin">  293 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  294 </span>        <span class="hl kwd">StartError</span><span class="hl opt">(</span>error<span class="hl opt">);</span>
+<span class="hl lin">  295 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  296 </span>    <span class="hl kwa">else</span>
+<span class="hl lin">  297 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  298 </span>        <span class="hl kwd">OnSend</span><span class="hl opt">(*</span>itr<span class="hl opt">);</span>
+<span class="hl lin">  299 </span>        m_pending_sends<span class="hl opt">.</span><span class="hl kwd">erase</span><span class="hl opt">(</span>itr<span class="hl opt">);</span>
+<span class="hl lin">  300 </span>        <span class="hl kwd">StartSend</span><span class="hl opt">();</span>
+<span class="hl lin">  301 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  302 </span><span class="hl opt">}</span>
+<span class="hl lin">  303 </span>
+<span class="hl lin">  304 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">HandleRecv</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">,</span> <span class="hl kwb">int32_t</span> actual_bytes<span class="hl opt">)</span>
+<span class="hl lin">  305 </span><span class="hl opt">{</span>
+<span class="hl lin">  306 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>error <span class="hl opt">||</span> <span class="hl kwd">HasError</span><span class="hl opt">() ||</span> m_hive<span class="hl opt">-&gt;</span><span class="hl kwd">HasStopped</span><span class="hl opt">())</span>
+<span class="hl lin">  307 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  308 </span>        <span class="hl kwd">StartError</span><span class="hl opt">(</span>error<span class="hl opt">);</span>
+<span class="hl lin">  309 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  310 </span>    <span class="hl kwa">else</span>
+<span class="hl lin">  311 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  312 </span>        m_recv_buffer<span class="hl opt">.</span><span class="hl kwd">resize</span><span class="hl opt">(</span>actual_bytes<span class="hl opt">);</span>
+<span class="hl lin">  313 </span>        <span class="hl kwd">OnRecv</span><span class="hl opt">(</span>m_recv_buffer<span class="hl opt">);</span>
+<span class="hl lin">  314 </span>        m_pending_recvs<span class="hl opt">.</span><span class="hl kwd">pop_front</span><span class="hl opt">();</span>
+<span class="hl lin">  315 </span>
+<span class="hl lin">  316 </span>        <span class="hl kwa">if</span> <span class="hl opt">(!</span>m_pending_recvs<span class="hl opt">.</span><span class="hl kwd">empty</span><span class="hl opt">())</span>
+<span class="hl lin">  317 </span>        <span class="hl opt">{</span>
+<span class="hl lin">  318 </span>            <span class="hl kwd">StartRecv</span><span class="hl opt">(</span>m_pending_recvs<span class="hl opt">.</span><span class="hl kwd">front</span><span class="hl opt">());</span>
+<span class="hl lin">  319 </span>        <span class="hl opt">}</span>
+<span class="hl lin">  320 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  321 </span><span class="hl opt">}</span>
+<span class="hl lin">  322 </span>
+<span class="hl lin">  323 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">HandleTimer</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">)</span>
+<span class="hl lin">  324 </span><span class="hl opt">{</span>
+<span class="hl lin">  325 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>error <span class="hl opt">||</span> <span class="hl kwd">HasError</span><span class="hl opt">() ||</span> m_hive<span class="hl opt">-&gt;</span><span class="hl kwd">HasStopped</span><span class="hl opt">())</span>
+<span class="hl lin">  326 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  327 </span>        <span class="hl kwd">StartError</span><span class="hl opt">(</span>error<span class="hl opt">);</span>
+<span class="hl lin">  328 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  329 </span>    <span class="hl kwa">else</span>
+<span class="hl lin">  330 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  331 </span>        <span class="hl kwc">auto</span> dur <span class="hl opt">=</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>duration_cast<span class="hl opt">&lt;</span>std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>milliseconds<span class="hl opt">&gt;(</span>std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>steady_clock<span class="hl opt">::</span><span class="hl kwd">now</span><span class="hl opt">() -</span> m_last_time<span class="hl opt">);</span>
+<span class="hl lin">  332 </span>        <span class="hl kwd">OnTimer</span><span class="hl opt">(</span>dur<span class="hl opt">);</span>
+<span class="hl lin">  333 </span>        <span class="hl kwd">StartTimer</span><span class="hl opt">();</span>
+<span class="hl lin">  334 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  335 </span><span class="hl opt">}</span>
+<span class="hl lin">  336 </span>
+<span class="hl lin">  337 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">DispatchSend</span><span class="hl opt">(</span>std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">uint8_t</span><span class="hl opt">&gt;</span> buffer<span class="hl opt">)</span>
+<span class="hl lin">  338 </span><span class="hl opt">{</span>
+<span class="hl lin">  339 </span>    <span class="hl kwb">bool</span> should_start_send <span class="hl opt">=</span> m_pending_sends<span class="hl opt">.</span><span class="hl kwd">empty</span><span class="hl opt">();</span>
+<span class="hl lin">  340 </span>    m_pending_sends<span class="hl opt">.</span><span class="hl kwd">push_back</span><span class="hl opt">(</span>buffer<span class="hl opt">);</span>
+<span class="hl lin">  341 </span>
+<span class="hl lin">  342 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>should_start_send<span class="hl opt">)</span>
+<span class="hl lin">  343 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  344 </span>        <span class="hl kwd">StartSend</span><span class="hl opt">();</span>
+<span class="hl lin">  345 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  346 </span><span class="hl opt">}</span>
+<span class="hl lin">  347 </span>
+<span class="hl lin">  348 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">DispatchRecv</span><span class="hl opt">(</span><span class="hl kwb">int32_t</span> total_bytes<span class="hl opt">)</span>
+<span class="hl lin">  349 </span><span class="hl opt">{</span>
+<span class="hl lin">  350 </span>    <span class="hl kwb">bool</span> should_start_receive <span class="hl opt">=</span> m_pending_recvs<span class="hl opt">.</span><span class="hl kwd">empty</span><span class="hl opt">();</span>
+<span class="hl lin">  351 </span>    m_pending_recvs<span class="hl opt">.</span><span class="hl kwd">push_back</span><span class="hl opt">(</span>total_bytes<span class="hl opt">);</span>
+<span class="hl lin">  352 </span>
+<span class="hl lin">  353 </span>    <span class="hl kwa">if</span> <span class="hl opt">(</span>should_start_receive<span class="hl opt">)</span>
+<span class="hl lin">  354 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  355 </span>        <span class="hl kwd">StartRecv</span><span class="hl opt">(</span>total_bytes<span class="hl opt">);</span>
+<span class="hl lin">  356 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  357 </span><span class="hl opt">}</span>
+<span class="hl lin">  358 </span>
+<span class="hl lin">  359 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">DispatchTimer</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">)</span>
+<span class="hl lin">  360 </span><span class="hl opt">{</span>
+<span class="hl lin">  361 </span>    m_io_strand<span class="hl opt">.</span><span class="hl kwd">post</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>Connection<span class="hl opt">::</span>HandleTimer<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> error<span class="hl opt">));</span>
+<span class="hl lin">  362 </span><span class="hl opt">}</span>
+<span class="hl lin">  363 </span>
+<span class="hl lin">  364 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">Connect</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>string<span class="hl opt">&amp;</span> host<span class="hl opt">,</span> <span class="hl kwb">uint16_t</span> port<span class="hl opt">)</span>
+<span class="hl lin">  365 </span><span class="hl opt">{</span>
+<span class="hl lin">  366 </span>    std<span class="hl opt">::</span>error_code ec<span class="hl opt">;</span>
+<span class="hl lin">  367 </span>    asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>resolver <span class="hl kwd">resolver</span><span class="hl opt">(</span>m_hive<span class="hl opt">-&gt;</span><span class="hl kwd">GetService</span><span class="hl opt">());</span>
+<span class="hl lin">  368 </span>    asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>resolver<span class="hl opt">::</span>query <span class="hl kwd">query</span><span class="hl opt">(</span>host<span class="hl opt">,</span> std<span class="hl opt">::</span><span class="hl kwd">to_string</span><span class="hl opt">(</span>port<span class="hl opt">));</span>
+<span class="hl lin">  369 </span>    asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>resolver<span class="hl opt">::</span>iterator iterator <span class="hl opt">=</span> resolver<span class="hl opt">.</span><span class="hl kwd">resolve</span><span class="hl opt">(</span>query<span class="hl opt">);</span>
+<span class="hl lin">  370 </span>    m_socket<span class="hl opt">.</span><span class="hl kwd">async_connect</span><span class="hl opt">(*</span>iterator<span class="hl opt">,</span> m_io_strand<span class="hl opt">.</span><span class="hl kwd">wrap</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>Connection<span class="hl opt">::</span>HandleConnect<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> _1<span class="hl opt">)));</span>
+<span class="hl lin">  371 </span>    <span class="hl kwd">StartTimer</span><span class="hl opt">();</span>
+<span class="hl lin">  372 </span><span class="hl opt">}</span>
+<span class="hl lin">  373 </span>
+<span class="hl lin">  374 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">Disconnect</span><span class="hl opt">()</span>
+<span class="hl lin">  375 </span><span class="hl opt">{</span>
+<span class="hl lin">  376 </span>    m_io_strand<span class="hl opt">.</span><span class="hl kwd">post</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>Connection<span class="hl opt">::</span>HandleTimer<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> asio<span class="hl opt">::</span>error<span class="hl opt">::</span>connection_reset<span class="hl opt">));</span>
+<span class="hl lin">  377 </span><span class="hl opt">}</span>
+<span class="hl lin">  378 </span>
+<span class="hl lin">  379 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">Recv</span><span class="hl opt">(</span><span class="hl kwb">int32_t</span> total_bytes<span class="hl opt">)</span>
+<span class="hl lin">  380 </span><span class="hl opt">{</span>
+<span class="hl lin">  381 </span>    m_io_strand<span class="hl opt">.</span><span class="hl kwd">post</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>Connection<span class="hl opt">::</span>DispatchRecv<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> total_bytes<span class="hl opt">));</span>
+<span class="hl lin">  382 </span><span class="hl opt">}</span>
+<span class="hl lin">  383 </span>
+<span class="hl lin">  384 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">Send</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">uint8_t</span><span class="hl opt">&gt;&amp;</span> buffer<span class="hl opt">)</span>
+<span class="hl lin">  385 </span><span class="hl opt">{</span>
+<span class="hl lin">  386 </span>    m_io_strand<span class="hl opt">.</span><span class="hl kwd">post</span><span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">bind</span><span class="hl opt">(&amp;</span>Connection<span class="hl opt">::</span>DispatchSend<span class="hl opt">,</span> <span class="hl kwd">shared_from_this</span><span class="hl opt">(),</span> buffer<span class="hl opt">));</span>
+<span class="hl lin">  387 </span><span class="hl opt">}</span>
+<span class="hl lin">  388 </span>
+<span class="hl lin">  389 </span>asio<span class="hl opt">::</span>ip<span class="hl opt">::</span>tcp<span class="hl opt">::</span>socket<span class="hl opt">&amp;</span> Connection<span class="hl opt">::</span><span class="hl kwd">GetSocket</span><span class="hl opt">()</span>
+<span class="hl lin">  390 </span><span class="hl opt">{</span>
+<span class="hl lin">  391 </span>    <span class="hl kwa">return</span> m_socket<span class="hl opt">;</span>
+<span class="hl lin">  392 </span><span class="hl opt">}</span>
+<span class="hl lin">  393 </span>
+<span class="hl lin">  394 </span>asio<span class="hl opt">::</span>io_service<span class="hl opt">::</span>strand<span class="hl opt">&amp;</span> Connection<span class="hl opt">::</span><span class="hl kwd">GetStrand</span><span class="hl opt">()</span>
+<span class="hl lin">  395 </span><span class="hl opt">{</span>
+<span class="hl lin">  396 </span>    <span class="hl kwa">return</span> m_io_strand<span class="hl opt">;</span>
+<span class="hl lin">  397 </span><span class="hl opt">}</span>
+<span class="hl lin">  398 </span>
+<span class="hl lin">  399 </span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Hive<span class="hl opt">&gt;</span> Connection<span class="hl opt">::</span><span class="hl kwd">GetHive</span><span class="hl opt">()</span>
+<span class="hl lin">  400 </span><span class="hl opt">{</span>
+<span class="hl lin">  401 </span>    <span class="hl kwa">return</span> m_hive<span class="hl opt">;</span>
+<span class="hl lin">  402 </span><span class="hl opt">}</span>
+<span class="hl lin">  403 </span>
+<span class="hl lin">  404 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">SetReceiveBufferSize</span><span class="hl opt">(</span><span class="hl kwb">int32_t</span> size<span class="hl opt">)</span>
+<span class="hl lin">  405 </span><span class="hl opt">{</span>
+<span class="hl lin">  406 </span>    m_receive_buffer_size <span class="hl opt">=</span> size<span class="hl opt">;</span>
+<span class="hl lin">  407 </span><span class="hl opt">}</span>
+<span class="hl lin">  408 </span>
+<span class="hl lin">  409 </span><span class="hl kwb">int32_t</span> Connection<span class="hl opt">::</span><span class="hl kwd">GetReceiveBufferSize</span><span class="hl opt">()</span> <span class="hl kwb">const</span>
+<span class="hl lin">  410 </span><span class="hl opt">{</span>
+<span class="hl lin">  411 </span>    <span class="hl kwa">return</span> m_receive_buffer_size<span class="hl opt">;</span>
+<span class="hl lin">  412 </span><span class="hl opt">}</span>
+<span class="hl lin">  413 </span>
+<span class="hl lin">  414 </span><span class="hl kwb">int32_t</span> Connection<span class="hl opt">::</span><span class="hl kwd">GetTimerInterval</span><span class="hl opt">()</span> <span class="hl kwb">const</span>
+<span class="hl lin">  415 </span><span class="hl opt">{</span>
+<span class="hl lin">  416 </span>    <span class="hl kwa">return</span> m_timer_interval<span class="hl opt">;</span>
+<span class="hl lin">  417 </span><span class="hl opt">}</span>
+<span class="hl lin">  418 </span>
+<span class="hl lin">  419 </span><span class="hl kwb">void</span> Connection<span class="hl opt">::</span><span class="hl kwd">SetTimerInterval</span><span class="hl opt">(</span><span class="hl kwb">int32_t</span> timer_interval<span class="hl opt">)</span>
+<span class="hl lin">  420 </span><span class="hl opt">{</span>
+<span class="hl lin">  421 </span>    m_timer_interval <span class="hl opt">=</span> timer_interval<span class="hl opt">;</span>
+<span class="hl lin">  422 </span><span class="hl opt">}</span>
+<span class="hl lin">  423 </span>
+<span class="hl lin">  424 </span><span class="hl kwb">bool</span> Connection<span class="hl opt">::</span><span class="hl kwd">HasError</span><span class="hl opt">()</span>
+<span class="hl lin">  425 </span><span class="hl opt">{</span>
+<span class="hl lin">  426 </span>    <span class="hl kwb">int</span> expected <span class="hl opt">=</span> <span class="hl num">1</span><span class="hl opt">;</span>
+<span class="hl lin">  427 </span>    <span class="hl kwa">return</span> <span class="hl opt">(</span>std<span class="hl opt">::</span><span class="hl kwd">atomic_compare_exchange_strong</span><span class="hl opt">(&amp;</span>m_error_state<span class="hl opt">, &amp;</span>expected<span class="hl opt">,</span> <span class="hl num">1</span><span class="hl opt">) ==</span> <span class="hl num">1</span><span class="hl opt">);</span>
+<span class="hl lin">  428 </span><span class="hl opt">}</span>
+<span class="hl lin">  429 </span>
+<span class="hl lin">  430 </span><span class="hl slc">//-----------------------------------------------------------------------------</span>
+</pre>
+
+The networking library attempts to provide a thread safe scalable wrapper for easily implementing client and server applications.
+Users will derive their custom class from the base Connection, Acceptor, or Hive classes as needed. The following examples will
+show the basics of using the wrapper.
+<br>
+<br>
+The first example we will look at is setting up a server using the wrapper. In this case, it is pretty similar to our previous
+examples. It simply echoes out all traffic sent or received. This server is a simple echo server this time around though.
+<br>
+<br>
+<strong class="bbc">Example 9a</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#include</span> <span class="hl pps">&quot;network.h&quot;</span><span class="hl ppc"></span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;iomanip&gt;</span>
+<span class="hl lin">    4 </span><span class="hl ppc">#include &lt;mutex&gt;</span>
+<span class="hl lin">    5 </span><span class="hl ppc">#include &lt;thread&gt;</span>
+<span class="hl lin">    6 </span>
+<span class="hl lin">    7 </span>std<span class="hl opt">::</span>mutex global_stream_lock<span class="hl opt">;</span>
+<span class="hl lin">    8 </span>
+<span class="hl lin">    9 </span><span class="hl slc">//==============================================================================</span>
+<span class="hl lin">   10 </span><span class="hl kwc">class</span> MyConnection <span class="hl opt">:</span> <span class="hl kwc">public</span> Connection
+<span class="hl lin">   11 </span><span class="hl opt">{</span>
+<span class="hl lin">   12 </span><span class="hl kwc">private</span><span class="hl opt">:</span>
+<span class="hl lin">   13 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnAccept</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>string<span class="hl opt">&amp;</span> host<span class="hl opt">,</span> <span class="hl kwb">uint16_t</span> port<span class="hl opt">)</span>
+<span class="hl lin">   14 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   15 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   16 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> host <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;:&quot;</span> <span class="hl opt">&lt;&lt;</span> port <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   17 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   18 </span>
+<span class="hl lin">   19 </span>        <span class="hl kwd">Recv</span><span class="hl opt">();</span>
+<span class="hl lin">   20 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   21 </span>
+<span class="hl lin">   22 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnConnect</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>string<span class="hl opt">&amp;</span> host<span class="hl opt">,</span> <span class="hl kwb">uint16_t</span> port<span class="hl opt">)</span>
+<span class="hl lin">   23 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   24 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   25 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> host <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;:&quot;</span> <span class="hl opt">&lt;&lt;</span> port <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   26 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   27 </span>
+<span class="hl lin">   28 </span>        <span class="hl kwd">Recv</span><span class="hl opt">();</span>
+<span class="hl lin">   29 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   30 </span>
+<span class="hl lin">   31 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnSend</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">uint8_t</span><span class="hl opt">&gt;&amp;</span> buffer<span class="hl opt">)</span>
+<span class="hl lin">   32 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   33 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   34 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> buffer<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot; bytes&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   35 </span>
+<span class="hl lin">   36 </span>        <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> buffer<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">(); ++</span>x<span class="hl opt">)</span>
+<span class="hl lin">   37 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   38 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>hex <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span><span class="hl kwd">setfill</span><span class="hl opt">(</span><span class="hl str">'0'</span><span class="hl opt">) &lt;&lt;</span> std<span class="hl opt">::</span><span class="hl kwd">setw</span><span class="hl opt">(</span><span class="hl num">2</span><span class="hl opt">) &lt;&lt; (</span><span class="hl kwb">int</span><span class="hl opt">)</span>buffer<span class="hl opt">[</span>x<span class="hl opt">] &lt;&lt;</span> <span class="hl str">&quot; &quot;</span><span class="hl opt">;</span>
+<span class="hl lin">   39 </span>
+<span class="hl lin">   40 </span>            <span class="hl kwa">if</span> <span class="hl opt">((</span>x <span class="hl opt">+</span> <span class="hl num">1</span><span class="hl opt">) %</span> <span class="hl num">16</span> <span class="hl opt">==</span> <span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">   41 </span>            <span class="hl opt">{</span>
+<span class="hl lin">   42 </span>                std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   43 </span>            <span class="hl opt">}</span>
+<span class="hl lin">   44 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   45 </span>
+<span class="hl lin">   46 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   47 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   48 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   49 </span>
+<span class="hl lin">   50 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnRecv</span><span class="hl opt">(</span>std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">uint8_t</span><span class="hl opt">&gt;&amp;</span> buffer<span class="hl opt">)</span>
+<span class="hl lin">   51 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   52 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   53 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> buffer<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot; bytes&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   54 </span>
+<span class="hl lin">   55 </span>        <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> buffer<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">(); ++</span>x<span class="hl opt">)</span>
+<span class="hl lin">   56 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   57 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>hex <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span><span class="hl kwd">setfill</span><span class="hl opt">(</span><span class="hl str">'0'</span><span class="hl opt">) &lt;&lt;</span> std<span class="hl opt">::</span><span class="hl kwd">setw</span><span class="hl opt">(</span><span class="hl num">2</span><span class="hl opt">) &lt;&lt; (</span><span class="hl kwb">int</span><span class="hl opt">)</span>buffer<span class="hl opt">[</span>x<span class="hl opt">] &lt;&lt;</span> <span class="hl str">&quot; &quot;</span><span class="hl opt">;</span>
+<span class="hl lin">   58 </span>
+<span class="hl lin">   59 </span>            <span class="hl kwa">if</span> <span class="hl opt">((</span>x <span class="hl opt">+</span> <span class="hl num">1</span><span class="hl opt">) %</span> <span class="hl num">16</span> <span class="hl opt">==</span> <span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">   60 </span>            <span class="hl opt">{</span>
+<span class="hl lin">   61 </span>                std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   62 </span>            <span class="hl opt">}</span>
+<span class="hl lin">   63 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   64 </span>
+<span class="hl lin">   65 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   66 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   67 </span>
+<span class="hl lin">   68 </span>        <span class="hl slc">// Start the next receive</span>
+<span class="hl lin">   69 </span>        <span class="hl kwd">Recv</span><span class="hl opt">();</span>
+<span class="hl lin">   70 </span>
+<span class="hl lin">   71 </span>        <span class="hl slc">// Echo the data back</span>
+<span class="hl lin">   72 </span>        <span class="hl kwd">Send</span><span class="hl opt">(</span>buffer<span class="hl opt">);</span>
+<span class="hl lin">   73 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   74 </span>
+<span class="hl lin">   75 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnTimer</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>microseconds<span class="hl opt">&amp;</span> delta<span class="hl opt">)</span>
+<span class="hl lin">   76 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   77 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   78 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> delta<span class="hl opt">.</span><span class="hl kwd">count</span><span class="hl opt">() &lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   79 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   80 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   81 </span>
+<span class="hl lin">   82 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnError</span><span class="hl opt">(</span><span class="hl kwb">const</span> asio<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">)</span>
+<span class="hl lin">   83 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   84 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   85 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> error <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   86 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   87 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   88 </span>
+<span class="hl lin">   89 </span><span class="hl kwc">public</span><span class="hl opt">:</span>
+<span class="hl lin">   90 </span>    <span class="hl kwd">MyConnection</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Hive<span class="hl opt">&gt;</span> hive<span class="hl opt">) :</span> <span class="hl kwd">Connection</span><span class="hl opt">(</span>hive<span class="hl opt">)</span>
+<span class="hl lin">   91 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   92 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   93 </span>
+<span class="hl lin">   94 </span>    <span class="hl opt">~</span><span class="hl kwd">MyConnection</span><span class="hl opt">()</span>
+<span class="hl lin">   95 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   96 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   97 </span><span class="hl opt">};</span>
+<span class="hl lin">   98 </span>
+<span class="hl lin">   99 </span><span class="hl slc">//==============================================================================</span>
+<span class="hl lin">  100 </span><span class="hl kwc">class</span> MyAcceptor <span class="hl opt">:</span> <span class="hl kwc">public</span> Acceptor
+<span class="hl lin">  101 </span><span class="hl opt">{</span>
+<span class="hl lin">  102 </span><span class="hl kwc">private</span><span class="hl opt">:</span>
+<span class="hl lin">  103 </span><span class="hl kwc">private</span><span class="hl opt">:</span>
+<span class="hl lin">  104 </span>    <span class="hl kwb">bool</span> <span class="hl kwd">OnAccept</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Connection<span class="hl opt">&gt;</span> connection<span class="hl opt">,</span> <span class="hl kwb">const</span> std<span class="hl opt">::</span>string<span class="hl opt">&amp;</span> host<span class="hl opt">,</span> <span class="hl kwb">uint16_t</span> port<span class="hl opt">)</span>
+<span class="hl lin">  105 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  106 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">  107 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> host <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;:&quot;</span> <span class="hl opt">&lt;&lt;</span> port <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">  108 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">  109 </span>
+<span class="hl lin">  110 </span>        <span class="hl kwa">return true</span><span class="hl opt">;</span>
+<span class="hl lin">  111 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  112 </span>
+<span class="hl lin">  113 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnTimer</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>microseconds<span class="hl opt">&amp;</span> delta<span class="hl opt">)</span>
+<span class="hl lin">  114 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  115 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">  116 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> delta<span class="hl opt">.</span><span class="hl kwd">count</span><span class="hl opt">() &lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">  117 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">  118 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  119 </span>
+<span class="hl lin">  120 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnError</span><span class="hl opt">(</span><span class="hl kwb">const</span> asio<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">)</span>
+<span class="hl lin">  121 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  122 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">  123 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> error <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">  124 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">  125 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  126 </span>
+<span class="hl lin">  127 </span><span class="hl kwc">public</span><span class="hl opt">:</span>
+<span class="hl lin">  128 </span>    <span class="hl kwd">MyAcceptor</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Hive<span class="hl opt">&gt;</span> hive<span class="hl opt">) :</span> <span class="hl kwd">Acceptor</span><span class="hl opt">(</span>hive<span class="hl opt">)</span>
+<span class="hl lin">  129 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  130 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  131 </span>
+<span class="hl lin">  132 </span>    <span class="hl opt">~</span><span class="hl kwd">MyAcceptor</span><span class="hl opt">()</span>
+<span class="hl lin">  133 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  134 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  135 </span><span class="hl opt">};</span>
+<span class="hl lin">  136 </span>
+<span class="hl lin">  137 </span><span class="hl slc">//==============================================================================</span>
+<span class="hl lin">  138 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span><span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span><span class="hl opt">*</span> argv<span class="hl opt">[])</span>
+<span class="hl lin">  139 </span><span class="hl opt">{</span>
+<span class="hl lin">  140 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Hive<span class="hl opt">&gt;</span> <span class="hl kwd">hive</span><span class="hl opt">(</span><span class="hl kwa">new</span> <span class="hl kwd">Hive</span><span class="hl opt">());</span>
+<span class="hl lin">  141 </span>
+<span class="hl lin">  142 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>MyAcceptor<span class="hl opt">&gt;</span> <span class="hl kwd">acceptor</span><span class="hl opt">(</span><span class="hl kwa">new</span> <span class="hl kwd">MyAcceptor</span><span class="hl opt">(</span>hive<span class="hl opt">));</span>
+<span class="hl lin">  143 </span>    acceptor<span class="hl opt">-&gt;</span><span class="hl kwd">Listen</span><span class="hl opt">(</span><span class="hl str">&quot;127.0.0.1&quot;</span><span class="hl opt">,</span> <span class="hl num">7777</span><span class="hl opt">);</span>
+<span class="hl lin">  144 </span>
+<span class="hl lin">  145 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>MyConnection<span class="hl opt">&gt;</span> <span class="hl kwd">connection</span><span class="hl opt">(</span><span class="hl kwa">new</span> <span class="hl kwd">MyConnection</span><span class="hl opt">(</span>hive<span class="hl opt">));</span>
+<span class="hl lin">  146 </span>    acceptor<span class="hl opt">-&gt;</span><span class="hl kwd">Accept</span><span class="hl opt">(</span>connection<span class="hl opt">);</span>
+<span class="hl lin">  147 </span>
+<span class="hl lin">  148 </span>    <span class="hl kwb">char</span> c<span class="hl opt">;</span>
+<span class="hl lin">  149 </span>
+<span class="hl lin">  150 </span>    <span class="hl kwa">while</span> <span class="hl opt">(</span>std<span class="hl opt">::</span>cin<span class="hl opt">.</span><span class="hl kwd">get</span><span class="hl opt">(</span>c<span class="hl opt">))</span>
+<span class="hl lin">  151 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  152 </span>        hive<span class="hl opt">-&gt;</span><span class="hl kwd">Poll</span><span class="hl opt">();</span>
+<span class="hl lin">  153 </span>        std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">sleep_for</span><span class="hl opt">(</span>std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">seconds</span><span class="hl opt">(</span><span class="hl num">1</span><span class="hl opt">));</span>
+<span class="hl lin">  154 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  155 </span>
+<span class="hl lin">  156 </span>    hive<span class="hl opt">-&gt;</span><span class="hl kwd">Stop</span><span class="hl opt">();</span>
+<span class="hl lin">  157 </span>
+<span class="hl lin">  158 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">  159 </span><span class="hl opt">}</span>
+</pre>
+
+The code should be pretty straight forward. Since we are using the wrapper now, all of the details of the socket management are
+behind the scenes now so we can focus on application logic. In this example, we do not use any worker threads, but the same
+concepts apply as have been shown in previous examples. We now know what a server looks like, so let us take a look at a client.
+<br>
+<br>
+<strong class="bbc">Example 9b</strong>
+<pre class="hl"><span class="hl lin">    1 </span><span class="hl ppc">#include</span> <span class="hl pps">&quot;network.h&quot;</span><span class="hl ppc"></span>
+<span class="hl lin">    2 </span><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl lin">    3 </span><span class="hl ppc">#include &lt;iomanip&gt;</span>
+<span class="hl lin">    4 </span><span class="hl ppc">#include &lt;mutex&gt;</span>
+<span class="hl lin">    5 </span><span class="hl ppc">#include &lt;thread&gt;</span>
+<span class="hl lin">    6 </span>
+<span class="hl lin">    7 </span>std<span class="hl opt">::</span>mutex global_stream_lock<span class="hl opt">;</span>
+<span class="hl lin">    8 </span>
+<span class="hl lin">    9 </span><span class="hl kwc">class</span> MyConnection <span class="hl opt">:</span> <span class="hl kwc">public</span> Connection
+<span class="hl lin">   10 </span><span class="hl opt">{</span>
+<span class="hl lin">   11 </span><span class="hl kwc">private</span><span class="hl opt">:</span>
+<span class="hl lin">   12 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnAccept</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>string<span class="hl opt">&amp;</span> host<span class="hl opt">,</span> <span class="hl kwb">uint16_t</span> port<span class="hl opt">)</span>
+<span class="hl lin">   13 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   14 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   15 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> host <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;:&quot;</span> <span class="hl opt">&lt;&lt;</span> port <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   16 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   17 </span>
+<span class="hl lin">   18 </span>        <span class="hl slc">// Start the next receive</span>
+<span class="hl lin">   19 </span>        <span class="hl kwd">Recv</span><span class="hl opt">();</span>
+<span class="hl lin">   20 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   21 </span>
+<span class="hl lin">   22 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnConnect</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>string<span class="hl opt">&amp;</span> host<span class="hl opt">,</span> <span class="hl kwb">uint16_t</span> port<span class="hl opt">)</span>
+<span class="hl lin">   23 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   24 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   25 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> host <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;:&quot;</span> <span class="hl opt">&lt;&lt;</span> port <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   26 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   27 </span>
+<span class="hl lin">   28 </span>        <span class="hl slc">// Start the next receive</span>
+<span class="hl lin">   29 </span>        <span class="hl kwd">Recv</span><span class="hl opt">();</span>
+<span class="hl lin">   30 </span>
+<span class="hl lin">   31 </span>        std<span class="hl opt">::</span>string str <span class="hl opt">=</span> <span class="hl str">&quot;GET / HTTP/1.0</span><span class="hl esc">\r\n\r\n</span><span class="hl str">&quot;</span><span class="hl opt">;</span>
+<span class="hl lin">   32 </span>
+<span class="hl lin">   33 </span>        std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">uint8_t</span><span class="hl opt">&gt;</span> request<span class="hl opt">;</span>
+<span class="hl lin">   34 </span>        std<span class="hl opt">::</span><span class="hl kwd">copy</span><span class="hl opt">(</span>str<span class="hl opt">.</span><span class="hl kwd">begin</span><span class="hl opt">(),</span> str<span class="hl opt">.</span><span class="hl kwd">end</span><span class="hl opt">(),</span> std<span class="hl opt">::</span><span class="hl kwd">back_inserter</span><span class="hl opt">(</span>request<span class="hl opt">));</span>
+<span class="hl lin">   35 </span>        <span class="hl kwd">Send</span><span class="hl opt">(</span>request<span class="hl opt">);</span>
+<span class="hl lin">   36 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   37 </span>
+<span class="hl lin">   38 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnSend</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">uint8_t</span><span class="hl opt">&gt;&amp;</span> buffer<span class="hl opt">)</span>
+<span class="hl lin">   39 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   40 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   41 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> buffer<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot; bytes&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   42 </span>
+<span class="hl lin">   43 </span>        <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> buffer<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">(); ++</span>x<span class="hl opt">)</span>
+<span class="hl lin">   44 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   45 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>hex <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span><span class="hl kwd">setfill</span><span class="hl opt">(</span><span class="hl str">'0'</span><span class="hl opt">) &lt;&lt;</span> std<span class="hl opt">::</span><span class="hl kwd">setw</span><span class="hl opt">(</span><span class="hl num">2</span><span class="hl opt">) &lt;&lt; (</span><span class="hl kwb">int</span><span class="hl opt">)</span>buffer<span class="hl opt">[</span>x<span class="hl opt">] &lt;&lt;</span> <span class="hl str">&quot; &quot;</span><span class="hl opt">;</span>
+<span class="hl lin">   46 </span>
+<span class="hl lin">   47 </span>            <span class="hl kwa">if</span> <span class="hl opt">((</span>x <span class="hl opt">+</span> <span class="hl num">1</span><span class="hl opt">) %</span> <span class="hl num">16</span> <span class="hl opt">==</span> <span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">   48 </span>            <span class="hl opt">{</span>
+<span class="hl lin">   49 </span>                std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   50 </span>            <span class="hl opt">}</span>
+<span class="hl lin">   51 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   52 </span>
+<span class="hl lin">   53 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   54 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   55 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   56 </span>
+<span class="hl lin">   57 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnRecv</span><span class="hl opt">(</span>std<span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">uint8_t</span><span class="hl opt">&gt;&amp;</span> buffer<span class="hl opt">)</span>
+<span class="hl lin">   58 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   59 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   60 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> buffer<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">() &lt;&lt;</span> <span class="hl str">&quot; bytes&quot;</span> <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   61 </span>
+<span class="hl lin">   62 </span>        <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> x <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> x <span class="hl opt">&lt;</span> buffer<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">(); ++</span>x<span class="hl opt">)</span>
+<span class="hl lin">   63 </span>        <span class="hl opt">{</span>
+<span class="hl lin">   64 </span>            std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>hex <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span><span class="hl kwd">setfill</span><span class="hl opt">(</span><span class="hl str">'0'</span><span class="hl opt">) &lt;&lt;</span> std<span class="hl opt">::</span><span class="hl kwd">setw</span><span class="hl opt">(</span><span class="hl num">2</span><span class="hl opt">) &lt;&lt; (</span><span class="hl kwb">int</span><span class="hl opt">)</span>buffer<span class="hl opt">[</span>x<span class="hl opt">] &lt;&lt;</span> <span class="hl str">&quot; &quot;</span><span class="hl opt">;</span>
+<span class="hl lin">   65 </span>
+<span class="hl lin">   66 </span>            <span class="hl kwa">if</span> <span class="hl opt">((</span>x <span class="hl opt">+</span> <span class="hl num">1</span><span class="hl opt">) %</span> <span class="hl num">16</span> <span class="hl opt">==</span> <span class="hl num">0</span><span class="hl opt">)</span>
+<span class="hl lin">   67 </span>            <span class="hl opt">{</span>
+<span class="hl lin">   68 </span>                std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   69 </span>            <span class="hl opt">}</span>
+<span class="hl lin">   70 </span>        <span class="hl opt">}</span>
+<span class="hl lin">   71 </span>
+<span class="hl lin">   72 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   73 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   74 </span>
+<span class="hl lin">   75 </span>        <span class="hl slc">// Start the next receive</span>
+<span class="hl lin">   76 </span>        <span class="hl kwd">Recv</span><span class="hl opt">();</span>
+<span class="hl lin">   77 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   78 </span>
+<span class="hl lin">   79 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnTimer</span><span class="hl opt">(</span><span class="hl kwb">const</span> std<span class="hl opt">::</span>chrono<span class="hl opt">::</span>microseconds<span class="hl opt">&amp;</span> delta<span class="hl opt">)</span>
+<span class="hl lin">   80 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   81 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   82 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> delta<span class="hl opt">.</span><span class="hl kwd">count</span><span class="hl opt">() &lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   83 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   84 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   85 </span>
+<span class="hl lin">   86 </span>    <span class="hl kwb">void</span> <span class="hl kwd">OnError</span><span class="hl opt">(</span><span class="hl kwb">const</span> asio<span class="hl opt">::</span>error_code<span class="hl opt">&amp;</span> error<span class="hl opt">)</span>
+<span class="hl lin">   87 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   88 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">lock</span><span class="hl opt">();</span>
+<span class="hl lin">   89 </span>        std<span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;[&quot;</span> <span class="hl opt">&lt;&lt;</span> __FUNCTION__ <span class="hl opt">&lt;&lt;</span> <span class="hl str">&quot;] &quot;</span> <span class="hl opt">&lt;&lt;</span> error <span class="hl opt">&lt;&lt;</span> std<span class="hl opt">::</span>endl<span class="hl opt">;</span>
+<span class="hl lin">   90 </span>        global_stream_lock<span class="hl opt">.</span><span class="hl kwd">unlock</span><span class="hl opt">();</span>
+<span class="hl lin">   91 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   92 </span>
+<span class="hl lin">   93 </span><span class="hl kwc">public</span><span class="hl opt">:</span>
+<span class="hl lin">   94 </span>    <span class="hl kwd">MyConnection</span><span class="hl opt">(</span>std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Hive<span class="hl opt">&gt;</span> hive<span class="hl opt">) :</span> <span class="hl kwd">Connection</span><span class="hl opt">(</span>hive<span class="hl opt">)</span>
+<span class="hl lin">   95 </span>    <span class="hl opt">{</span>
+<span class="hl lin">   96 </span>    <span class="hl opt">}</span>
+<span class="hl lin">   97 </span>
+<span class="hl lin">   98 </span>    <span class="hl opt">~</span><span class="hl kwd">MyConnection</span><span class="hl opt">()</span>
+<span class="hl lin">   99 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  100 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  101 </span><span class="hl opt">};</span>
+<span class="hl lin">  102 </span>
+<span class="hl lin">  103 </span><span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">(</span><span class="hl kwb">int</span> argc<span class="hl opt">,</span> <span class="hl kwb">char</span><span class="hl opt">*</span> argv<span class="hl opt">[])</span>
+<span class="hl lin">  104 </span><span class="hl opt">{</span>
+<span class="hl lin">  105 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>Hive<span class="hl opt">&gt;</span> <span class="hl kwd">hive</span><span class="hl opt">(</span><span class="hl kwa">new</span> <span class="hl kwd">Hive</span><span class="hl opt">());</span>
+<span class="hl lin">  106 </span>
+<span class="hl lin">  107 </span>    std<span class="hl opt">::</span>shared_ptr<span class="hl opt">&lt;</span>MyConnection<span class="hl opt">&gt;</span> <span class="hl kwd">connection</span><span class="hl opt">(</span><span class="hl kwa">new</span> <span class="hl kwd">MyConnection</span><span class="hl opt">(</span>hive<span class="hl opt">));</span>
+<span class="hl lin">  108 </span>    connection<span class="hl opt">-&gt;</span><span class="hl kwd">Connect</span><span class="hl opt">(</span><span class="hl str">&quot;www.google.com&quot;</span><span class="hl opt">,</span> <span class="hl num">80</span><span class="hl opt">);</span>
+<span class="hl lin">  109 </span>
+<span class="hl lin">  110 </span>    <span class="hl kwb">char</span> c<span class="hl opt">;</span>
+<span class="hl lin">  111 </span>
+<span class="hl lin">  112 </span>    <span class="hl kwa">while</span> <span class="hl opt">(</span>std<span class="hl opt">::</span>cin<span class="hl opt">.</span><span class="hl kwd">get</span><span class="hl opt">(</span>c<span class="hl opt">))</span>
+<span class="hl lin">  113 </span>    <span class="hl opt">{</span>
+<span class="hl lin">  114 </span>        hive<span class="hl opt">-&gt;</span><span class="hl kwd">Poll</span><span class="hl opt">();</span>
+<span class="hl lin">  115 </span>        std<span class="hl opt">::</span>this_thread<span class="hl opt">::</span><span class="hl kwd">sleep_for</span><span class="hl opt">(</span>std<span class="hl opt">::</span>chrono<span class="hl opt">::</span><span class="hl kwd">seconds</span><span class="hl opt">(</span><span class="hl num">1</span><span class="hl opt">));</span>
+<span class="hl lin">  116 </span>    <span class="hl opt">}</span>
+<span class="hl lin">  117 </span>
+<span class="hl lin">  118 </span>    hive<span class="hl opt">-&gt;</span><span class="hl kwd">Stop</span><span class="hl opt">();</span>
+<span class="hl lin">  119 </span>
+<span class="hl lin">  120 </span>    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl lin">  121 </span><span class="hl opt">}</span>
+</pre>
+
+This client simply sends a HTTP GET to Google and then dumps the output in hex format to the console. The theme of reusability
+further shows itself in this example as the code in this example is not too different than the code of the server. This means our
+client and server programs are not going to be radically different. That is a good thing as it makes life easier for future
+maintenance.
+<br>
+<br>
+With our networking wrapper, we can see how a lot of work is simplified for us. There are a lot of design implications to this
+particular networking wrapper that should be noticed. First, for "servers", there is no concept of storing each connection into a
+container for easy referencing. This is done because to add all connections into a container, the end user must lock the container
+to synchronize access to it or implement an async method of adding and removing connections. In short, this is behavior the end
+user has to implement if they need it. Not all networking applications have to be aware of all connections present at a time (HTTP
+servers for example) so the wrapper goes for the most generic approach beneficial to all.
+<br>
+<br>
+Next, all connection interactions are done through a unique strand. As we covered already, the strand object allows events to be
+executed serially. As a result, we do not have to explicitly lock the connection each time an event happens because no events will
+ever happen concurrently no matter how many worker threads we have. Care has to be taken though because if the user adds any custom
+methods, then they would have to implement their logic following the same design to keep the class thread safe.
+<br>
+<br>
+Simple send/recv buffer logic is implemented through vectors and lists. This obviously has serious memory implications in the long
+run. However, anyone who has custom memory needs will have their own unique system to work with, so they would modify the code as
+needed anyways. For most simple applications, the provided system is good enough and cross platform (standard C++ library
+containers) so no efforts have been made to complicate that aspect.
+<br>
+<br>
+Finally, the specific design of the wrapper is not for everyone. This is just one example of what is possible with the asio
+library. I prefer and use this wrapper myself, so that is why I am sharing it. Feel free to come up with your own and customize it
+as you need! The important part is getting familiar with the asio library.
+<br>
+<hr>
+<div class="nav">
+<a accesskey="p" href="pg9.html"><img src="prev.png" alt="Prev"></a><a accesskey="u" href="pg1.html"><img src="up.png" alt="Up"></a><a accesskey="h" href="pg1.html"><img src="home.png" alt="Home"></a><a accesskey="n" href="pg11.html"><img src="next.png" alt="Next"></a>
+</div>
+</div>
+</body>
+</html>
