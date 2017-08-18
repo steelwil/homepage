@@ -153,23 +153,23 @@ NOTE: Use this program with SOLVER
 
 00 { 128-Byte Prgm }
 01▸LBL "TMVG"
-02 MVAR "YRS"      Years
-03 MVAR "I%YR"     Interest per year
-04 MVAR "%GR"      Interest growth per year
-05 MVAR "PV"       Present value
-06 MVAR "PMT"      Payment
-07 MVAR "FV"       Final Value
+02 MVAR "YRS"       Years
+03 MVAR "I%YR"      Interest per year
+04 MVAR "%GR"       Interest growth per year
+05 MVAR "PV"        Present value
+06 MVAR "PMT"       Payment
+07 MVAR "FV"        Final Value
 08 RCL "YRS"
-09 12
+09 12               Convert period to months
 10 ×
-11 STO 06
+11 STO 06           N months
 12 1
 13 RCL "I%YR"
 14 %
 15 12
 16 ÷
 17 +
-18 STO 08
+18 STO 08           1 + i / 12
 19 -12
 20 Y↑X
 21 STO 07
@@ -177,7 +177,7 @@ NOTE: Use this program with SOLVER
 23 RCL "%GR"
 24 %
 25 +
-26 STO 09
+26 STO 09           1 + ig / 12
 27 ×
 28 RCL "YRS"
 29 Y↑X
@@ -375,6 +375,7 @@ This program solves for:   ax² + bx + c         x     y     z
 
 --------------------------------------------------------------------------------
 Calculates the area of a circle
+
 00 { 11-Byte Prgm }
 01▸LBL "AREA"
 02 X↑2
