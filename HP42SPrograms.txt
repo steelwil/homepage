@@ -165,17 +165,17 @@ NOTE: Use this program with SOLVER
 11 STO 06           N months
 12 1
 13 RCL "I%YR"
-14 %
-15 12
+14 %                convert to factor
+15 12               Interest per month
 16 ÷
 17 +
-18 STO 08           1 + i / 12
+18 STO 08           1 + I%YR / 100 / 12
 19 -12
 20 Y↑X
-21 STO 07
+21 STO 07           I⁻¹²
 22 1
 23 RCL "%GR"
-24 %
+24 %                %GR / 100
 25 +
 26 STO 09           1 + ig / 12
 27 ×
@@ -184,27 +184,27 @@ NOTE: Use this program with SOLVER
 30 +/-
 31 1
 32 +
-33 RCL 07
+33 RCL 07           I⁻¹²
 34 1
 35 -
 36 ×
 37 1
-38 RCL 09
-39 RCL 07
+38 RCL 09           1 + ig / 12
+39 RCL 07           I⁻¹²
 40 ×
 41 -
 42 ÷
 43 RCL× "PMT"
-44 RCL 08
-45 RCL 06
+44 RCL 08           1 + i / 12
+45 RCL 06           N months
 46 Y↑X
 47 ×
 48 1
-49 RCL 08
+49 RCL 08           1 + i / 12
 50 -
 51 ÷
-52 RCL 08
-53 RCL 06
+52 RCL 08           1 + i / 12
+53 RCL 06           N months
 54 Y↑X
 55 RCL× "PV"
 56 ×
